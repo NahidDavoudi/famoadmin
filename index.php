@@ -17,7 +17,7 @@
     <script src="<?= famo_asset('js/libs/lucide.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/lucide-adapter.js', '') ?>"></script>
     <link rel="stylesheet" href="assets/css/admin.css">
-    <script type="module" src="assets/js/index.js?v=2"></script>
+    <script type="module" src="assets/js/index.js?v=<?= @filemtime(__DIR__ . '/assets/js/index.js') ?: 2 ?>"></script>
 
 
 </head>
