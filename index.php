@@ -253,7 +253,7 @@
                 </div>
 
                 <!-- STUDENT DETAIL PAGE -->
-                <div id="page-student-detail" class="page-content hidden">
+                <div id="page-student_detail" class="page-content hidden">
                     <div class="flex items-center gap-3 mb-6">
                         <button onclick="window.navigateTo('students')"
                             class="btn btn-secondary flex items-center gap-2">
