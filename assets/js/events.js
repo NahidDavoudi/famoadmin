@@ -11,7 +11,7 @@ import { handleAddStudent, handleEditStudent } from './students.js';
 import { handleAddSupporter, handleEditSupporter } from './supporters.js';
 import { handleFileUpload } from './files.js';
 import { handleAddCourse, handleEditCourse } from './courses.js';
-import { handleAddInstructor, handleEditInstructor } from './instructors.js';
+import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=2';
 import { handleExamEntry, addSubjectRow } from './exam-entry.js';
 import { handleBlogSubmit } from './blog.js';
 import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates } from './ui.js';

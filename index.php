@@ -17,7 +17,7 @@
     <script src="<?= famo_asset('js/libs/lucide.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/lucide-adapter.js', '') ?>"></script>
     <link rel="stylesheet" href="assets/css/admin.css">
-    <script type="module" src="assets/js/index.js"></script>
+    <script type="module" src="assets/js/index.js?v=2"></script>
 
 
 </head>
@@ -1523,7 +1523,7 @@
                     </div>
                     <div class="form-group">
                         <label>تصویر</label>
-                        <input type="file" name="image" accept="image/*">
+                        <input type="file" accept="image/*">
                         <p class="text-xs text-gray-500">JPG, PNG, WEBP | حداکثر: 5MB | پیشنهادی: 400x500px</p>
                     </div>
                     <div class="form-group">
@@ -1592,7 +1592,7 @@
                     </div>
                     <div class="form-group">
                         <label>تصویر جدید (اختیاری)</label>
-                        <input type="file" name="image" accept="image/*">
+                        <input type="file" accept="image/*">
                     </div>
                     <div class="form-group">
                         <label>توضیحات</label>

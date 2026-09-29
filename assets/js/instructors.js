@@ -68,10 +68,12 @@ function renderInstructorsTable(instructors) {
 
 function getInstructorFormData(form) {
     const formData = new FormData(form);
-    const imageInput = form.querySelector('[name="image"]');
+    const imageInput = form.querySelector('input[type="file"]');
+    const imageFile = imageInput?.files[0];
 
-    if (!imageInput?.files.length) {
-        formData.delete('image');
+    formData.delete('image');
+    if (imageFile) {
+        formData.append('image', imageFile);
     }
 
     return formData;

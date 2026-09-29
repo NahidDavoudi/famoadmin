@@ -3,7 +3,7 @@
  * پنل مدیریت فامو - نقطه ورود ماژولار
  */
 
-import { init, setupEventListeners } from './events.js';
+import { init, setupEventListeners } from './events.js?v=2';
 import { showModal, hideModal } from './utils.js';
 import { loadStudents, editStudent, deleteStudent, createStudentAccount, resetStudentPassword, clearStudentFilters } from './students.js';
 import { editSupporter, deleteSupporter } from './supporters.js';
@@ -11,7 +11,7 @@ import { loadExams, loadExamStudents, loadExamDetails, goBackFromExamDetails, cl
 import { addSubjectRow, removeSubjectRow, clearExamForm, calculateSkipped } from './exam-entry.js';
 import { deleteFile } from './files.js';
 import { editCourse, deleteCourse } from './courses.js';
-import { editInstructor, deleteInstructor } from './instructors.js';
+import { editInstructor, deleteInstructor } from './instructors.js?v=2';
 import { navigateTo } from './nav.js';
 import { loadReports } from './reports.js';
 import { loadBlogPosts, handleBlogSubmit, openBlogEditor, editBlogPost, deleteBlogPost } from './blog.js';
