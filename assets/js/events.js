@@ -8,6 +8,7 @@ import { checkAuth, handleLogout } from './auth.js';
 import { navigateTo } from './nav.js';
 import { loadStudents } from './students.js';
 import { handleAddStudent, handleEditStudent } from './students.js';
+import { handleParentContactSubmit } from './parents.js';
 import { handleAddSupporter, handleEditSupporter } from './supporters.js';
 import { handleFileUpload } from './files.js';
 import { handleAddCourse, handleEditCourse } from './courses.js';
@@ -19,6 +20,7 @@ import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDat
 const forms = {
     addStudentForm: handleAddStudent,
     editStudentForm: handleEditStudent,
+    parentContactForm: handleParentContactSubmit,
     addSupporterForm: handleAddSupporter,
     editSupporterForm: handleEditSupporter,
     uploadForm: handleFileUpload,

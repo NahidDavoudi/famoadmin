@@ -5,6 +5,7 @@
 import * as config from './config.js';
 import { loadStats } from './dashboard.js';
 import { loadStudents } from './students.js';
+import { loadStudentDetailPage } from './parents.js';
 import { loadCourses } from './courses.js';
 import { loadInstructors } from './instructors.js';
 import { loadExams, loadExamStudents } from './exams.js';
@@ -18,6 +19,7 @@ import { loadBlogPosts } from './blog.js';
 const pageLoaders = {
     overview: loadStats,
     students: loadStudents,
+    student_detail: loadStudentDetailPage,
     courses: loadCourses,
     instructors: loadInstructors,
     exams: loadExams,
@@ -48,7 +50,9 @@ export function navigateTo(page) {
     config.setCurrentPage(page);
 
     document.querySelectorAll('.sidebar-link[data-page]').forEach(link => {
-        link.classList.toggle('active', link.dataset.page === page);
+        const active = link.dataset.page === page
+            || (page === 'student_detail' && link.dataset.page === 'students');
+        link.classList.toggle('active', active);
     });
 
     document.querySelectorAll('.page-content').forEach(p => p.classList.add('hidden'));

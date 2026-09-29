@@ -104,6 +104,9 @@ function renderStudentsTable(students) {
                 </td>
                 <td class="px-3 py-2.5 text-center">
                     <div class="flex items-center justify-center gap-1">
+                        <button onclick="window.openStudentDetail(${s.id})" class="p-1.5 rounded-lg text-primary hover:text-[#5a779e] hover:bg-gray-50 transition" title="جزئیات" aria-label="جزئیات دانش‌آموز ${escapeHtml(s.name)}">
+                            ${icon('eye', 'icon icon--sm')}
+                        </button>
                         <button onclick="window.editStudent(${s.id}, '${escapeHtml(s.name)}', ${s.grade}, '${escapeHtml(s.field)}', '${escapeHtml(s.phone || '')}', '${escapeHtml(s.national_id || '')}')" class="p-1.5 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="ویرایش" aria-label="ویرایش دانش‌آموز ${escapeHtml(s.name)}">
                             ${icon('edit', 'icon icon--sm')}
                         </button>

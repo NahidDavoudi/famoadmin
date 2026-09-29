@@ -13,6 +13,7 @@ export let lastSubmissionTime = 0;
 export let currentExamView = 'dates';
 export let currentExamDate = null;
 export let currentExamStudentId = null;
+export let detailStudentId = null;
 
 export function setCurrentPage(page) {
     currentPage = page;
@@ -44,6 +45,14 @@ export function setCurrentExamDate(date) {
 
 export function setCurrentExamStudentId(id) {
     currentExamStudentId = id;
+}
+
+export function setDetailStudentId(id) {
+    detailStudentId = id;
+}
+
+export function getDetailStudentId() {
+    return detailStudentId;
 }
 
 export function getAvgChart() {

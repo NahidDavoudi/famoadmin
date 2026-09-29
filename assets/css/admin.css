@@ -1334,6 +1334,19 @@ table tbody td {
     padding: var(--ds-space-3) var(--ds-space-4);
 }
 
+/* Inline field validation error */
+.field-error {
+    font-size: var(--ds-text-xs);
+    color: #dc2626;
+    margin-top: var(--ds-space-1);
+}
+
+/* Component display rules must not beat the layered Tailwind `.hidden` */
+.modal-form.hidden,
+[data-role].hidden {
+    display: none;
+}
+
 @media (max-width: 480px) {
 
     .modal-form .form-grid-2,

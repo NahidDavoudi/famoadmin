@@ -20,6 +20,7 @@ export function showLoginPage() {
 }
 
 export function showMainPanel(username, role) {
+    window.currentUserRole = role;
     const panel = document.getElementById('mainPanel');
     if (panel) {
         panel.classList.remove('hidden');

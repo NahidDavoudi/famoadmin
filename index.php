@@ -252,6 +252,123 @@
                     </div>
                 </div>
 
+                <!-- STUDENT DETAIL PAGE -->
+                <div id="page-student-detail" class="page-content hidden">
+                    <div class="flex items-center gap-3 mb-6">
+                        <button onclick="window.navigateTo('students')"
+                            class="btn btn-secondary flex items-center gap-2">
+                            <i data-lucide="arrow-right" class="icon" aria-hidden="true"></i>
+                            <span>بازگشت</span>
+                        </button>
+                    </div>
+
+                    <div id="studentDetailHeader" class="mb-6"></div>
+
+                    <div class="bg-white rounded-2xl shadow p-5">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                            <h2 class="text-lg font-bold text-primary flex items-center gap-2">
+                                <i data-lucide="contact" class="icon" aria-hidden="true"></i>
+                                <span>اطلاعات تماس والدین</span>
+                            </h2>
+                            <button id="addParentContactBtn" data-role="admin" onclick="window.startAddParentContact()"
+                                class="btn btn-primary flex items-center gap-2">
+                                <i data-lucide="plus" class="icon" aria-hidden="true"></i>
+                                <span>افزودن مخاطب</span>
+                            </button>
+                        </div>
+
+                        <!-- Inline form (add/edit) -->
+                        <form id="parentContactForm" class="modal-form hidden mb-6">
+                            <input type="hidden" name="id">
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>نام والد/سرپرست <span class="text-red-500">*</span></label>
+                                    <input type="text" name="parent_name" maxlength="255" placeholder="نام والد یا سرپرست">
+                                    <p class="field-error hidden" data-error-for="parent_name"></p>
+                                </div>
+                                <div class="form-group">
+                                    <label>نسبت <span class="text-red-500">*</span></label>
+                                    <select name="relationship">
+                                        <option value="">انتخاب کنید</option>
+                                        <option value="father">پدر</option>
+                                        <option value="mother">مادر</option>
+                                        <option value="guardian">سرپرست</option>
+                                        <option value="other">سایر</option>
+                                    </select>
+                                    <p class="field-error hidden" data-error-for="relationship"></p>
+                                </div>
+                            </div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label>تلفن <span class="text-red-500">*</span></label>
+                                    <input type="tel" name="phone" maxlength="15" dir="ltr" class="text-left"
+                                        placeholder="09120000000">
+                                    <p class="field-error hidden" data-error-for="phone"></p>
+                                </div>
+                                <div class="form-group">
+                                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" name="is_primary">
+                                        <span>مخاطب اصلی</span>
+                                    </label>
+                                    <p class="field-error hidden" data-error-for="is_primary"></p>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary flex items-center gap-2">
+                                    <i data-lucide="check" class="icon" aria-hidden="true"></i>
+                                    <span>ذخیره</span>
+                                </button>
+                                <button type="button" onclick="window.cancelParentContactForm()"
+                                    class="btn btn-secondary">انصراف</button>
+                            </div>
+                        </form>
+
+                        <!-- Skeleton -->
+                        <div id="parentContactsSkeleton" class="hidden">
+                            <div class="skeleton skeleton-table-row"></div>
+                            <div class="skeleton skeleton-table-row"></div>
+                            <div class="skeleton skeleton-table-row"></div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="table-wrap overflow-x-auto">
+                            <table class="w-full responsive-table">
+                                <thead class="bg-primary text-white">
+                                    <tr>
+                                        <th class="px-3 py-3 text-right font-medium">نام والد/سرپرست</th>
+                                        <th class="px-3 py-3 text-center font-medium">نسبت</th>
+                                        <th class="px-3 py-3 text-center font-medium">تلفن</th>
+                                        <th class="px-3 py-3 text-center font-medium">وضعیت</th>
+                                        <th data-role="admin" class="px-3 py-3 text-center font-medium">عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="parentContactsTable"></tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="parentContactsEmptyState" class="empty-state hidden">
+                            <div class="empty-state__icon">
+                                <i data-lucide="contact" class="icon" aria-hidden="true"></i>
+                            </div>
+                            <h3 class="empty-state__title">مخاطبی ثبت نشده است</h3>
+                            <p class="empty-state__description">هنوز اطلاعات تماس والدی برای این دانش‌آموز ثبت نشده
+                                است.</p>
+                            <button onclick="window.startAddParentContact()" data-role="admin"
+                                class="empty-state__action btn btn-primary">
+                                <i data-lucide="plus" class="icon" aria-hidden="true"></i>
+                                <span>افزودن مخاطب</span>
+                            </button>
+                        </div>
+
+                        <!-- Error State -->
+                        <div id="parentContactsError" class="hidden text-center py-8">
+                            <p class="text-red-600 mb-3">خطا در بارگذاری مخاطبان</p>
+                            <button onclick="window.loadParentContacts()" class="btn btn-secondary">تلاش دوباره</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- COURSES PAGE -->
                 <div id="page-courses" class="page-content hidden">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
