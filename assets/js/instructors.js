@@ -66,12 +66,23 @@ function renderInstructorsTable(instructors) {
     `).join('');
 }
 
+function getInstructorFormData(form) {
+    const formData = new FormData(form);
+    const imageInput = form.querySelector('[name="image"]');
+
+    if (!imageInput?.files.length) {
+        formData.delete('image');
+    }
+
+    return formData;
+}
+
 export async function handleAddInstructor(e) {
     e.preventDefault();
     const submitBtn = e.target.querySelector('[type="submit"]');
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload('/instructors', new FormData(e.target));
+        await API.upload('/instructors', getInstructorFormData(e.target));
         hideModal('addInstructorModal');
         e.target.reset();
         loadInstructors();
@@ -116,7 +127,7 @@ export async function handleEditInstructor(e) {
     const submitBtn = form.querySelector('[type="submit"]');
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload(`/instructors/${id}`, new FormData(form), 'PUT');
+        await API.upload(`/instructors/${id}`, getInstructorFormData(form), 'PUT');
         hideModal('editInstructorModal');
         form.reset();
         loadInstructors();
