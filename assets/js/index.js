@@ -5,7 +5,7 @@
 
 import { init, setupEventListeners } from './events.js?v=2';
 import { showModal, hideModal } from './utils.js';
-import { loadStudents, editStudent, deleteStudent, createStudentAccount, resetStudentPassword, clearStudentFilters, toggleStudentStatus } from './students.js';
+import { loadStudents, editStudent, deleteStudent, createStudentAccount, resetStudentPassword, clearStudentFilters, toggleStudentStatus, toggleStudentSelection, toggleSelectAllStudents, clearStudentSelection, bulkDeleteStudents, bulkSetStudentStatus, bulkCreateStudentAccounts } from './students.js';
 import { openStudentDetail, startAddParentContact, startEditParentContact, cancelParentContactForm, deleteParentContact, loadParentContacts } from './parents.js';
 import { editSupporter, deleteSupporter } from './supporters.js';
 import { loadExams, loadExamStudents, loadExamDetails, goBackFromExamDetails, clearExamsFilter } from './exams.js';
@@ -29,6 +29,12 @@ window.createStudentAccount = createStudentAccount;
 window.resetStudentPassword = resetStudentPassword;
 window.clearStudentFilters = clearStudentFilters;
 window.toggleStudentStatus = toggleStudentStatus;
+window.toggleStudentSelection = toggleStudentSelection;
+window.toggleSelectAllStudents = toggleSelectAllStudents;
+window.clearStudentSelection = clearStudentSelection;
+window.bulkDeleteStudents = bulkDeleteStudents;
+window.bulkSetStudentStatus = bulkSetStudentStatus;
+window.bulkCreateStudentAccounts = bulkCreateStudentAccounts;
 window.openStudentDetail = openStudentDetail;
 window.startAddParentContact = startAddParentContact;
 window.startEditParentContact = startEditParentContact;

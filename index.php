@@ -208,6 +208,39 @@
                         </div>
                     </div>
 
+                    <!-- Bulk Actions -->
+                    <div id="studentsBulkBar"
+                        class="hidden flex flex-wrap items-center gap-2 mb-3 p-3 rounded-xl bg-white shadow border border-gray-100">
+                        <span class="text-sm font-medium text-primary" id="studentsBulkCount"></span>
+                        <div class="flex flex-wrap gap-2 mr-auto">
+                            <button onclick="window.bulkDeleteStudents()"
+                                class="btn btn-secondary flex items-center gap-1">
+                                <i data-lucide="trash-2" class="icon icon--sm" aria-hidden="true"></i>
+                                <span>حذف</span>
+                            </button>
+                            <button onclick="window.bulkSetStudentStatus(false)"
+                                class="btn btn-secondary flex items-center gap-1">
+                                <i data-lucide="pause" class="icon icon--sm" aria-hidden="true"></i>
+                                <span>غیرفعال‌سازی</span>
+                            </button>
+                            <button onclick="window.bulkSetStudentStatus(true)"
+                                class="btn btn-secondary flex items-center gap-1">
+                                <i data-lucide="play" class="icon icon--sm" aria-hidden="true"></i>
+                                <span>فعال‌سازی</span>
+                            </button>
+                            <button onclick="window.bulkCreateStudentAccounts()"
+                                class="btn btn-secondary flex items-center gap-1">
+                                <i data-lucide="user-plus" class="icon icon--sm" aria-hidden="true"></i>
+                                <span>ایجاد حساب</span>
+                            </button>
+                            <button onclick="window.clearStudentSelection()"
+                                class="btn btn-secondary flex items-center gap-1">
+                                <i data-lucide="x" class="icon icon--sm" aria-hidden="true"></i>
+                                <span>پاک‌کردن انتخاب</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Skeleton Loader -->
                     <div id="studentsSkeleton" class="hidden">
                         <div class="skeleton skeleton-table-row"></div>
@@ -222,6 +255,11 @@
                         <table class="w-full responsive-table">
                             <thead class="bg-primary text-white">
                                 <tr>
+                                    <th data-role="admin" class="px-3 py-3 text-center font-medium w-10">
+                                        <input type="checkbox" id="studentsSelectAll"
+                                            onchange="window.toggleSelectAllStudents(this.checked)"
+                                            aria-label="انتخاب همه">
+                                    </th>
                                     <th class="px-3 py-3 text-right font-medium">نام</th>
                                     <th class="px-3 py-3 text-center font-medium">تماس / کد ملی</th>
                                     <th class="px-3 py-3 text-center font-medium">پایه</th>

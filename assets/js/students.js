@@ -5,11 +5,21 @@
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, getElementValue, setFormValues, icon, withButtonLoading } from './utils.js';
 import { showConfirm } from './confirm-modal.js';
+import * as config from './config.js';
+import { studentsNeedingStatusChange, studentsWithoutAccount, summarizeResults } from './students-bulk-logic.js';
 
 const PAGE_SIZE = 20;
 let currentPage = 1;
 let totalPages = 1;
 let totalRecords = 0;
+
+const selectedIds = new Set();
+let currentStudents = [];
+let bulkRunning = false;
+
+function isAdminUser() {
+    return window.currentUserRole === 'admin';
+}
 
 export async function loadStudents(page = 1) {
     const search = getElementValue('filterSearch');
@@ -18,6 +28,7 @@ export async function loadStudents(page = 1) {
     const status = document.getElementById('filterStatus')?.value || '';
 
     currentPage = page;
+    selectedIds.clear();
 
     const skeleton = document.getElementById('studentsSkeleton');
     const tableWrap = document.querySelector('#studentsTable')?.closest('.table-wrap');
@@ -39,6 +50,7 @@ export async function loadStudents(page = 1) {
     try {
         const res = await API.get(`/students?${params.toString()}`);
         const students = res.data || [];
+        currentStudents = students;
         totalPages = res.pagination?.total_pages || 1;
         totalRecords = res.pagination?.total || 0;
         renderStudentsTable(students);
@@ -64,11 +76,14 @@ function renderStudentsTable(students) {
         if (tableWrap) tableWrap.style.display = 'none';
         if (emptyState) emptyState.classList.remove('hidden');
         if (paginationContainer) paginationContainer.classList.add('hidden');
+        updateBulkBar();
         return;
     }
 
     if (tableWrap) tableWrap.style.display = '';
     if (emptyState) emptyState.classList.add('hidden');
+
+    const admin = isAdminUser();
 
     tbody.innerHTML = students.map(s => {
         const isActive = Number(s.is_active) === 1;
@@ -76,9 +91,14 @@ function renderStudentsTable(students) {
         const statusClass = isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
         const statusText = isActive ? 'فعال' : 'غیرفعال';
         const statusIcon = isActive ? 'check' : 'pause';
+        const checkboxCell = admin ? `
+                <td class="px-3 py-2.5 text-center">
+                    <input type="checkbox" class="student-select-checkbox" data-id="${s.id}" ${selectedIds.has(Number(s.id)) ? 'checked' : ''} onchange="window.toggleStudentSelection(${s.id}, this.checked)" aria-label="انتخاب ${escapeHtml(s.name)}">
+                </td>` : '';
 
         return `
             <tr class="hover:bg-gray-50">
+                ${checkboxCell}
                 <td class="px-3 py-2.5 font-medium">${escapeHtml(s.name)}</td>
                 <td class="px-3 py-2.5 text-left" dir="ltr">
                     <div class="flex flex-col gap-0.5 text-xs">
@@ -129,6 +149,147 @@ function renderStudentsTable(students) {
     }).join('');
 
     if (paginationContainer) paginationContainer.classList.remove('hidden');
+    updateBulkBar();
+}
+
+function updateBulkBar() {
+    const bar = document.getElementById('studentsBulkBar');
+    const countEl = document.getElementById('studentsBulkCount');
+    const selectAll = document.getElementById('studentsSelectAll');
+    if (!bar) return;
+
+    if (!isAdminUser()) {
+        bar.classList.add('hidden');
+        return;
+    }
+
+    const count = selectedIds.size;
+    const total = currentStudents.length;
+
+    if (countEl) countEl.textContent = `${count} مورد انتخاب شده`;
+    bar.classList.toggle('hidden', count === 0);
+
+    if (selectAll) {
+        selectAll.checked = total > 0 && count === total;
+        selectAll.indeterminate = count > 0 && count < total;
+    }
+}
+
+export function toggleStudentSelection(id, checked) {
+    if (checked) selectedIds.add(Number(id));
+    else selectedIds.delete(Number(id));
+    updateBulkBar();
+}
+
+export function toggleSelectAllStudents(checked) {
+    if (!isAdminUser()) return;
+    if (checked) currentStudents.forEach(s => selectedIds.add(Number(s.id)));
+    else selectedIds.clear();
+
+    document.querySelectorAll('#studentsTable .student-select-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateBulkBar();
+}
+
+export function clearStudentSelection() {
+    selectedIds.clear();
+    document.querySelectorAll('#studentsTable .student-select-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    updateBulkBar();
+}
+
+async function runBulkOperation(label, ids, task) {
+    if (bulkRunning) {
+        showAlert('یک عملیات گروهی دیگر در حال انجام است', 'warning');
+        return;
+    }
+
+    bulkRunning = true;
+    clearStudentSelection();
+    showAlert(`در حال ${label} ${ids.length} مورد... عملیات در پس‌زمینه انجام می‌شود`, 'info');
+
+    let summary;
+    try {
+        const results = await Promise.allSettled(ids.map(id => task(id)));
+        summary = summarizeResults(results);
+    } finally {
+        bulkRunning = false;
+    }
+
+    if (summary.failed === 0) {
+        showAlert(`${summary.succeeded} مورد با موفقیت انجام شد`, 'success');
+    } else if (summary.succeeded === 0) {
+        showAlert(`عملیات برای ${summary.failed} مورد ناموفق بود`, 'error');
+    } else {
+        showAlert(`${summary.succeeded} مورد با موفقیت و ${summary.failed} مورد ناموفق انجام شد`, 'warning');
+    }
+
+    if (config.currentPage === 'students') {
+        loadStudents(currentPage);
+    }
+}
+
+export function bulkDeleteStudents() {
+    if (!isAdminUser()) return;
+
+    const ids = [...selectedIds];
+    if (!ids.length) {
+        showAlert('ابتدا حداقل یک دانش‌آموز را انتخاب کنید', 'warning');
+        return;
+    }
+
+    showConfirm({
+        message: `آیا از حذف ${ids.length} دانش‌آموز و حساب‌های مرتبط اطمینان دارید؟`,
+        confirmText: 'حذف',
+        cancelText: 'انصراف',
+        onConfirm: () => runBulkOperation('حذف', ids, id => API.del(`/students/${id}`))
+    });
+}
+
+export function bulkSetStudentStatus(active) {
+    if (!isAdminUser()) return;
+
+    const selected = currentStudents.filter(s => selectedIds.has(Number(s.id)));
+    const ids = studentsNeedingStatusChange(selected, active);
+
+    if (!ids.length) {
+        showAlert(active ? 'همهٔ موارد انتخاب‌شده هم‌اکنون فعال هستند' : 'همهٔ موارد انتخاب‌شده هم‌اکنون غیرفعال هستند', 'warning');
+        return;
+    }
+
+    const run = () => runBulkOperation(active ? 'فعال‌سازی' : 'غیرفعال‌سازی', ids, id => API.post(`/students/${id}/toggle-status`));
+
+    if (active) {
+        run();
+    } else {
+        showConfirm({
+            message: `آیا از غیرفعال‌سازی ${ids.length} دانش‌آموز اطمینان دارید؟`,
+            confirmText: 'غیرفعال‌سازی',
+            cancelText: 'انصراف',
+            onConfirm: run
+        });
+    }
+}
+
+export function bulkCreateStudentAccounts() {
+    if (!isAdminUser()) return;
+
+    const selected = currentStudents.filter(s => selectedIds.has(Number(s.id)));
+    const ids = studentsWithoutAccount(selected);
+
+    if (!ids.length) {
+        showAlert('همهٔ موارد انتخاب‌شده از قبل حساب کاربری دارند', 'warning');
+        return;
+    }
+
+    showConfirm({
+        message: `برای ${ids.length} دانش‌آموز حساب کاربری با رمز پیش‌فرض 1234 ایجاد شود؟`,
+        confirmText: 'ایجاد حساب',
+        cancelText: 'انصراف',
+        onConfirm: () => runBulkOperation('ایجاد حساب', ids, id => API.post(`/students/${id}/create-account`))
+    });
 }
 
 function renderPagination() {
