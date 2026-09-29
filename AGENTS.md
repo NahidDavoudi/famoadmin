@@ -38,7 +38,12 @@ PHP-served frontend SPA (Persian/Farsi, RTL) for the Famo admin panel. `index.ph
 - Tailwind source: `../shared/css/input.css` (scans `admin/**/*.php` and `admin/**/*.js`).
 - Build from `../shared`: `npm run build:css`. Never edit `output.css` directly.
 
+## Git Workflow
+- Always commit and push changes (branch `new` → `origin/new`) after completing work.
+
 ## Gotchas
 - No test/lint/typecheck tooling configured; validate JS with `node --input-type=module --check < file.js`.
 - To run code after the DOM is ready, use `onReady()` from `api.js`, not `document.addEventListener('DOMContentLoaded', ...)` directly.
+- Inline `onclick="window.foo(...)"` handlers only work if `foo` is exported by a module AND assigned to `window` in `assets/js/index.js`.
+- The entry module in `index.php` is cache-busted via `filemtime`; do not hardcode a `?v=` value.
 - The old local API (`admin/api/`) and its `api-client.js`/sprite assets were removed — do not recreate them.
