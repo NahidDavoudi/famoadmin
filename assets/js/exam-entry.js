@@ -7,13 +7,11 @@ const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`)
 import { showAlert } from './utils.js';
 import { loadStudentList } from './ui.js';
 import * as config from './config.js';
-import {
-    toGregorian, getTodayJalali, getJalaliMonths,
-    jalaliMonthDays, formatGregorianToJalali
-} from './/jalali.js';
+import { formatGregorianToJalali } from './jalali.js';
+import { createJalaliPicker } from './jalali-picker.js';
 
-// Guard: only initialize Jalali picker once
-let jalaliPickerInitialized = false;
+// Jalali date picker controller (module-level)
+let examDatePicker = null;
 
 // ── Student Cache & Autocomplete ──
 const CACHE_KEY = 'students_list_cache';
@@ -220,112 +218,22 @@ export async function loadExamEntryPage() {
         }
     }, 100);
 
-    initJalaliDatePicker();
+    initExamDatePicker();
     resetExamForm();
 }
 
 // ── Jalali Date Picker ──
 
-export function initJalaliDatePicker() {
-    const yearSelect = document.getElementById('examJalaliYear');
-    const monthSelect = document.getElementById('examJalaliMonth');
-    const daySelect = document.getElementById('examJalaliDay');
-
-    if (!yearSelect || !monthSelect || !daySelect) return;
-
-    if (!jalaliPickerInitialized) {
-        const months = getJalaliMonths();
-        const [todayYear] = getTodayJalali();
-
-        // Populate years (current year - 2 to current year + 1)
-        yearSelect.innerHTML = '';
-        for (let y = todayYear - 2; y <= todayYear + 1; y++) {
-            const option = document.createElement('option');
-            option.value = y;
-            option.textContent = y;
-            yearSelect.appendChild(option);
-        }
-
-        // Populate months with Persian names
-        monthSelect.innerHTML = '';
-        months.forEach((name, index) => {
-            const option = document.createElement('option');
-            option.value = index + 1;
-            option.textContent = `${index + 1} - ${name}`;
-            monthSelect.appendChild(option);
+export function initExamDatePicker() {
+    if (!examDatePicker) {
+        examDatePicker = createJalaliPicker({
+            containerId: 'examEntryDatePicker',
+            hiddenInputId: 'examDateInput',
+            yearsBack: 2,
+            yearsForward: 1
         });
-
-        // Event listeners
-        yearSelect.addEventListener('change', () => {
-            updateJalaliDays();
-            syncJalaliToGregorian();
-        });
-        monthSelect.addEventListener('change', () => {
-            updateJalaliDays();
-            syncJalaliToGregorian();
-        });
-        daySelect.addEventListener('change', syncJalaliToGregorian);
-
-        jalaliPickerInitialized = true;
     }
-
-    // Set to today
-    setJalaliToday();
-}
-
-function setJalaliToday() {
-    const yearSelect = document.getElementById('examJalaliYear');
-    const monthSelect = document.getElementById('examJalaliMonth');
-    const daySelect = document.getElementById('examJalaliDay');
-
-    if (!yearSelect) return;
-
-    const [todayYear, todayMonth, todayDay] = getTodayJalali();
-    yearSelect.value = todayYear;
-    monthSelect.value = todayMonth;
-    updateJalaliDays();
-    daySelect.value = todayDay;
-    syncJalaliToGregorian();
-}
-
-export function updateJalaliDays() {
-    const yearSelect = document.getElementById('examJalaliYear');
-    const monthSelect = document.getElementById('examJalaliMonth');
-    const daySelect = document.getElementById('examJalaliDay');
-
-    if (!yearSelect || !monthSelect || !daySelect) return;
-
-    const year = parseInt(yearSelect.value);
-    const month = parseInt(monthSelect.value);
-    const maxDays = jalaliMonthDays(month, year);
-    const currentDay = parseInt(daySelect.value) || 1;
-
-    daySelect.innerHTML = '';
-    for (let d = 1; d <= maxDays; d++) {
-        const option = document.createElement('option');
-        option.value = d;
-        option.textContent = d;
-        daySelect.appendChild(option);
-    }
-
-    // Keep current day or clamp to max
-    daySelect.value = Math.min(currentDay, maxDays);
-}
-
-export function syncJalaliToGregorian() {
-    const yearSelect = document.getElementById('examJalaliYear');
-    const monthSelect = document.getElementById('examJalaliMonth');
-    const daySelect = document.getElementById('examJalaliDay');
-    const hiddenInput = document.getElementById('examDateInput');
-
-    if (!yearSelect || !monthSelect || !daySelect || !hiddenInput) return;
-
-    const jy = parseInt(yearSelect.value);
-    const jm = parseInt(monthSelect.value);
-    const jd = parseInt(daySelect.value);
-
-    const [gy, gm, gd] = toGregorian(jy, jm, jd);
-    hiddenInput.value = `${gy}-${String(gm).padStart(2, '0')}-${String(gd).padStart(2, '0')}`;
+    return examDatePicker;
 }
 
 // ── Form Submission ──
@@ -440,8 +348,8 @@ export function getStudentIdInput() {
 }
 
 export function getExamDateInput() {
-    return document.querySelector('input[name="exam_date"]') ||
-        document.getElementById('examDateInput');
+    return document.getElementById('examDateInput') ||
+        document.querySelector('input[name="exam_date"]');
 }
 
 // ── Validation ──
@@ -495,16 +403,9 @@ export function resetExamForm() {
     }
 
     // Set Jalali date picker to today
-    const yearSelect = document.getElementById('examJalaliYear');
-    if (yearSelect) {
-        setJalaliToday();
-    } else {
-        // Fallback for non-Jalali date input
-        const examDateInput = getExamDateInput();
-        if (examDateInput && examDateInput.type !== 'hidden') {
-            const today = new Date().toISOString().split('T')[0];
-            examDateInput.value = today;
-        }
+    const picker = examDatePicker || initExamDatePicker();
+    if (picker) {
+        picker.setToday();
     }
 }
 

@@ -4,6 +4,7 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, updateStatElement } from './utils.js';
+import { formatJalaliDate } from './jalali.js';
 import * as config from './config.js';
 import { getBaseChartOptions, CHART_COLORS } from './chart-theme.js';
 
@@ -41,7 +42,7 @@ function updateReportsChart(reports) {
     const prev = config.getReportsChart();
     if (prev) prev.destroy();
 
-    const categories = reports.map(r => r.report_date);
+    const categories = reports.map(r => formatJalaliDate(r.report_date));
     const pendingData = reports.map(r => r.pending);
     const repliedData = reports.map(r => r.replied);
 

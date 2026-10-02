@@ -7,7 +7,7 @@
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, escapeHtml, icon } from './utils.js';
 import * as config from './config.js';
-import { formatGregorianToJalali, formatJalaliLong } from './jalali.js';
+import { formatGregorianToJalali, formatJalaliLong, toJalali } from './jalali.js';
 import { setupTableResponsive } from './ui.js';
 
 // ApexCharts will be loaded globally (make sure it's included in page)
@@ -19,7 +19,25 @@ export async function loadExams() {
 
     try {
         const res = await API.get('/exams/dates?per_page=100');
-        const data = res.data?.dates || [];
+        let data = res.data?.dates || [];
+
+        const yearSelect = document.getElementById('examsFilterYear');
+        const monthSelect = document.getElementById('examsFilterMonth');
+        if (yearSelect || monthSelect) {
+            const yearValue = yearSelect ? yearSelect.value : '';
+            const monthValue = monthSelect ? monthSelect.value : '';
+            if (yearValue !== '' || monthValue !== '') {
+                data = data.filter(exam => {
+                    const match = String(exam.exam_date || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                    if (!match) return false;
+                    const [jy, jm] = toJalali(Number(match[1]), Number(match[2]), Number(match[3]));
+                    if (yearValue !== '' && Number(jy) !== Number(yearValue)) return false;
+                    if (monthValue !== '' && Number(jm) !== Number(monthValue)) return false;
+                    return true;
+                });
+            }
+        }
+
         updateExamsTitle('آزمون‌های برگزار شده', icon('clipboard', 'icon ml-2'));
 
         const container = document.getElementById('examsContainer');
@@ -45,7 +63,7 @@ export async function loadExams() {
                     <tbody>
                         ${data.map(exam => `
                             <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.loadExamStudents('${exam.exam_date}')">
-                                <td class="px-5 py-4 font-medium" dir="ltr" style="text-align: right;">
+                                <td class="px-5 py-4 font-medium" style="text-align: right;">
                                     ${icon('calendar', 'icon icon--lg ml-2 text-primary')}
                                     ${formatJalaliLong(exam.exam_date)}
                                 </td>
@@ -330,5 +348,9 @@ export function goBackFromExamDetails() {
 
 /** برای دکمه پاک کردن فیلتر */
 export function clearExamsFilter() {
+    const yearSelect = document.getElementById('examsFilterYear');
+    const monthSelect = document.getElementById('examsFilterMonth');
+    if (yearSelect) yearSelect.value = '';
+    if (monthSelect) monthSelect.value = '';
     loadExams();
 }

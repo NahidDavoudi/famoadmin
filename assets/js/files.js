@@ -4,6 +4,7 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, escapeHtml, formatDate, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { formatJalaliDate } from './jalali.js';
 import { setDefaultDates } from './ui.js';
 
 function uploadsBase() {
@@ -60,7 +61,7 @@ function renderFilesTable(files) {
                 ${escapeHtml(fileName(f))}
             </td>
             <td class="px-5 py-4">${f.student_name ? escapeHtml(f.student_name) : '<span class="text-gray-400">عمومی</span>'}</td>
-            <td class="px-5 py-4">${formatDate(f.created_at)}</td>
+            <td class="px-5 py-4">${formatJalaliDate(f.report_date)}</td>
             <td class="px-5 py-4">${f.file_size ? Math.round(f.file_size / 1024) + ' KB' : '-'}</td>
             <td class="px-5 py-4">${formatDate(f.created_at)}</td>
             <td class="px-5 py-4">

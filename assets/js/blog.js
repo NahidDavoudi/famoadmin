@@ -4,7 +4,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton, formatDate } from './utils.js';
 
 let editorReady = false;
 
@@ -240,11 +240,4 @@ export async function deleteBlogPost(id, button) {
         showAlert('پست حذف شد', 'success');
     }, 'در حال حذف...')
         .catch(error => showAlert(error.message, 'error'));
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-    return date.toLocaleDateString('fa-IR', options);
 }

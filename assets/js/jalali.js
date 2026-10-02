@@ -114,32 +114,143 @@ export function jalaliMonthDays(jm, jy) {
     return isJalaliLeap(jy) ? 30 : 29;
 }
 
+function isValidGregorian(gy, gm, gd) {
+    return Number.isInteger(gy) && gy >= 1 && gy <= 9999
+        && Number.isInteger(gm) && gm >= 1 && gm <= 12
+        && Number.isInteger(gd) && gd >= 1 && gd <= 31;
+}
+
 /**
- * Format a Gregorian date string (YYYY-MM-DD) to Jalali (YYYY/MM/DD)
- * @param {string} dateStr - e.g. "2025-02-06"
+ * Parse many common date/time representations into explicit Gregorian parts.
+ * Date instances and timestamps use local time; wall-clock strings keep the
+ * given parts; anything else (ISO with Z/offset) falls back to `new Date`.
+ * @param {Date|number|string|null|undefined} input
+ * @returns {{gy:number,gm:number,gd:number,hours:number|null,minutes:number|null}|null}
+ */
+export function parseDateTimeParts(input) {
+    if (input === null || input === undefined || input === '') return null;
+
+    if (input instanceof Date) {
+        if (Number.isNaN(input.getTime())) return null;
+        return {
+            gy: input.getFullYear(),
+            gm: input.getMonth() + 1,
+            gd: input.getDate(),
+            hours: input.getHours(),
+            minutes: input.getMinutes(),
+        };
+    }
+
+    if (typeof input === 'number') {
+        if (!Number.isFinite(input)) return null;
+        const ms = input < 1e12 ? input * 1000 : input;
+        const d = new Date(ms);
+        if (Number.isNaN(d.getTime())) return null;
+        return {
+            gy: d.getFullYear(),
+            gm: d.getMonth() + 1,
+            gd: d.getDate(),
+            hours: d.getHours(),
+            minutes: d.getMinutes(),
+        };
+    }
+
+    if (typeof input !== 'string') return null;
+
+    const str = input.trim();
+    if (!str) return null;
+
+    let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (m) {
+        const gy = Number(m[1]);
+        const gm = Number(m[2]);
+        const gd = Number(m[3]);
+        if (!isValidGregorian(gy, gm, gd)) return null;
+        return { gy, gm, gd, hours: null, minutes: null };
+    }
+
+    m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+    if (m) {
+        const gy = Number(m[1]);
+        const gm = Number(m[2]);
+        const gd = Number(m[3]);
+        const hours = Number(m[4]);
+        const minutes = Number(m[5]);
+        if (!isValidGregorian(gy, gm, gd)) return null;
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+        return { gy, gm, gd, hours, minutes };
+    }
+
+    const d = new Date(str);
+    if (Number.isNaN(d.getTime())) return null;
+    return {
+        gy: d.getFullYear(),
+        gm: d.getMonth() + 1,
+        gd: d.getDate(),
+        hours: d.getHours(),
+        minutes: d.getMinutes(),
+    };
+}
+
+function invalidResult(input) {
+    if (typeof input === 'string') {
+        const str = input.trim();
+        if (str && !/^\d{4}-\d{1,2}-\d{1,2}(?:[T ].*)?$/.test(str)) return str;
+    }
+    return '-';
+}
+
+/**
+ * Format a Gregorian date (in many representations) to Jalali (YYYY/MM/DD)
+ * @param {Date|number|string|null|undefined} input - e.g. "2025-02-06"
  * @returns {string} e.g. "1403/11/18"
  */
-export function formatGregorianToJalali(dateStr) {
-    if (!dateStr) return '-';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [gy, gm, gd] = parts.map(Number);
-    const [jy, jm, jd] = toJalali(gy, gm, gd);
+export function formatJalaliDate(input) {
+    if (input === null || input === undefined || input === '') return '-';
+    const parts = parseDateTimeParts(input);
+    if (!parts) return invalidResult(input);
+    const [jy, jm, jd] = toJalali(parts.gy, parts.gm, parts.gd);
     return `${jy}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
 }
 
 /**
- * Format a Gregorian date string to human-readable Jalali with month name
- * @param {string} dateStr - e.g. "2025-02-06"
+ * Alias kept for backwards compatibility.
+ * @param {Date|number|string|null|undefined} dateStr
+ * @returns {string}
+ */
+export function formatGregorianToJalali(dateStr) {
+    return formatJalaliDate(dateStr);
+}
+
+/**
+ * Format a Gregorian date (in many representations) to human-readable Jalali
+ * @param {Date|number|string|null|undefined} input - e.g. "2025-02-06"
  * @returns {string} e.g. "18 بهمن 1403"
  */
-export function formatJalaliLong(dateStr) {
-    if (!dateStr) return '-';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    const [gy, gm, gd] = parts.map(Number);
-    const [jy, jm, jd] = toJalali(gy, gm, gd);
+export function formatJalaliLong(input) {
+    if (input === null || input === undefined || input === '') return '-';
+    const parts = parseDateTimeParts(input);
+    if (!parts) return invalidResult(input);
+    const [jy, jm, jd] = toJalali(parts.gy, parts.gm, parts.gd);
     return `${jd} ${JALALI_MONTHS[jm - 1]} ${jy}`;
+}
+
+/**
+ * Format a Gregorian date/time (in many representations) to Jalali with time.
+ * Time is omitted when the input has no time component (date-only).
+ * @param {Date|number|string|null|undefined} input
+ * @returns {string} e.g. "1403/11/18 - 14:30"
+ */
+export function formatJalaliDateTime(input) {
+    if (input === null || input === undefined || input === '') return '-';
+    const parts = parseDateTimeParts(input);
+    if (!parts) return invalidResult(input);
+    const [jy, jm, jd] = toJalali(parts.gy, parts.gm, parts.gd);
+    const date = `${jy}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
+    if (parts.hours === null || parts.hours === undefined) return date;
+    const hh = String(parts.hours).padStart(2, '0');
+    const mm = String(parts.minutes ?? 0).padStart(2, '0');
+    return `${date} - ${hh}:${mm}`;
 }
 
 /**

@@ -13,9 +13,10 @@ import { handleAddSupporter, handleEditSupporter } from './supporters.js';
 import { handleFileUpload } from './files.js';
 import { handleAddCourse, handleEditCourse } from './courses.js';
 import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=2';
-import { handleExamEntry, addSubjectRow } from './exam-entry.js';
+import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry.js';
 import { handleBlogSubmit } from './blog.js';
-import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates } from './ui.js';
+import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates, initDatePickers } from './ui.js';
+import { getTodayJalali, getJalaliMonths } from './jalali.js';
 
 const forms = {
     addStudentForm: handleAddStudent,
@@ -154,10 +155,44 @@ export function setupEventListeners() {
     setupModalClosers();
 }
 
+function setupExamFilters() {
+    const yearSelect = document.getElementById('examsFilterYear');
+    const monthSelect = document.getElementById('examsFilterMonth');
+
+    if (yearSelect && yearSelect.options.length <= 1) {
+        const [currentYear] = getTodayJalali();
+        for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+            const option = document.createElement('option');
+            option.value = String(y);
+            option.textContent = y;
+            yearSelect.appendChild(option);
+        }
+    }
+
+    if (monthSelect && monthSelect.options.length <= 1) {
+        getJalaliMonths().forEach((name, index) => {
+            const option = document.createElement('option');
+            option.value = String(index + 1);
+            option.textContent = `${index + 1} - ${name}`;
+            monthSelect.appendChild(option);
+        });
+    }
+
+    const triggerLoadExams = () => {
+        if (typeof window.loadExams === 'function') window.loadExams();
+    };
+
+    if (yearSelect) yearSelect.addEventListener('change', triggerLoadExams);
+    if (monthSelect) monthSelect.addEventListener('change', triggerLoadExams);
+}
+
 export function init() {
     checkAuth();
     setupEventListeners();
+    initDatePickers();
+    initExamDatePicker();
     setDefaultDates();
+    setupExamFilters();
     addNoSpinnerStyles();
     initMobileMenu();
     setupTableResponsive();

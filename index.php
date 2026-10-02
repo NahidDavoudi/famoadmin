@@ -532,9 +532,15 @@
                                 <i data-lucide="chevron-left" class="icon" aria-hidden="true"></i>
                                 <span>بازگشت</span>
                             </button>
-                            <div class="relative">
-                                <input type="month" id="examsMonthFilter"
+                            <div class="flex gap-2">
+                                <select id="examsFilterYear"
                                     class="w-full sm:w-auto px-4 py-2 border-2 border-gray-200 rounded-xl modern-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                                    <option value="">همه سال‌ها</option>
+                                </select>
+                                <select id="examsFilterMonth"
+                                    class="w-full sm:w-auto px-4 py-2 border-2 border-gray-200 rounded-xl modern-input focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                                    <option value="">همه ماه‌ها</option>
+                                </select>
                             </div>
                             <button onclick="clearExamsFilter()"
                                 class="px-4 py-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-2">
@@ -640,25 +646,8 @@
                                             aria-hidden="true"></i>
                                         تاریخ آزمون (شمسی)
                                     </label>
-                                    <div id="jalaliDatePicker" class="grid grid-cols-3 gap-2">
-                                        <div>
-                                            <select id="examJalaliYear"
-                                                class="w-full px-3 py-3 border-2 border-gray-200 rounded-xl modern-input text-center keyboard-focus jalali-select">
-                                            </select>
-                                            <span class="block text-xs text-gray-400 text-center mt-1">سال</span>
-                                        </div>
-                                        <div>
-                                            <select id="examJalaliMonth"
-                                                class="w-full px-3 py-3 border-2 border-gray-200 rounded-xl modern-input text-center keyboard-focus jalali-select">
-                                            </select>
-                                            <span class="block text-xs text-gray-400 text-center mt-1">ماه</span>
-                                        </div>
-                                        <div>
-                                            <select id="examJalaliDay"
-                                                class="w-full px-3 py-3 border-2 border-gray-200 rounded-xl modern-input text-center keyboard-focus jalali-select">
-                                            </select>
-                                            <span class="block text-xs text-gray-400 text-center mt-1">روز</span>
-                                        </div>
+                                    <div id="jalaliDatePicker">
+                                        <div id="examEntryDatePicker" class="grid grid-cols-3 gap-2"></div>
                                     </div>
                                     <input type="hidden" id="examDateInput" name="exam_date">
                                 </div>
@@ -743,8 +732,8 @@
                                 </div>
                                 <div>
                                     <label class="block mb-1.5 text-sm font-medium text-gray-600">تاریخ آزمون</label>
-                                    <input type="date" name="exam_date"
-                                        class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl modern-input">
+                                    <div id="uploadExamDatePicker" class="grid grid-cols-3 gap-2"></div>
+                                    <input type="hidden" id="uploadExamDateInput" name="exam_date">
                                 </div>
                                 <div>
                                     <label class="block mb-1.5 text-sm font-medium text-gray-600">توضیحات</label>
@@ -912,11 +901,11 @@
 
                     <div class="filter-bar">
                         <div class="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-center">
-                            <input type="date" id="reportDateFrom"
-                                class="flex-1 min-w-0 px-4 py-2.5 border-2 border-gray-200 rounded-xl modern-input">
+                            <div id="reportDateFromPicker" class="flex-1 min-w-0"></div>
+                            <input type="hidden" id="reportDateFrom">
                             <span class="text-gray-500 text-center text-sm">تا</span>
-                            <input type="date" id="reportDateTo"
-                                class="flex-1 min-w-0 px-4 py-2.5 border-2 border-gray-200 rounded-xl modern-input">
+                            <div id="reportDateToPicker" class="flex-1 min-w-0"></div>
+                            <input type="hidden" id="reportDateTo">
                             <button onclick="loadReports()"
                                 class="bg-primary text-white px-6 py-2.5 rounded-xl hover:bg-[#5a779e] transition font-medium flex items-center justify-center gap-2">
                                 <i data-lucide="search" class="icon" aria-hidden="true"></i>

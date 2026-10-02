@@ -3,7 +3,28 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { setElementValue } from './utils.js';
+import { getTodayJalali } from './jalali.js';
+import { createJalaliPicker } from './jalali-picker.js';
+
+// Jalali picker controllers (module-level)
+let uploadDatePicker = null;
+let reportFromPicker = null;
+let reportToPicker = null;
+
+export function initDatePickers() {
+    uploadDatePicker = createJalaliPicker({
+        containerId: 'uploadExamDatePicker',
+        hiddenInputId: 'uploadExamDateInput'
+    });
+    reportFromPicker = createJalaliPicker({
+        containerId: 'reportDateFromPicker',
+        hiddenInputId: 'reportDateFrom'
+    });
+    reportToPicker = createJalaliPicker({
+        containerId: 'reportDateToPicker',
+        hiddenInputId: 'reportDateTo'
+    });
+}
 
 export function addNoSpinnerStyles() {
     if (document.getElementById('no-spinner-styles')) return;
@@ -91,13 +112,12 @@ function applyDataLabels(table) {
 }
 
 export function setDefaultDates() {
-    const today = new Date().toISOString().split('T')[0];
-    const firstOfMonth = today.substring(0, 8) + '01';
+    const [jy, jm, jd] = getTodayJalali();
 
-    // Exam entry date is now handled by Jalali date picker in exam-entry.js
-    setElementValue('#uploadForm input[name="exam_date"]', today);
-    setElementValue('#reportDateFrom', firstOfMonth);
-    setElementValue('#reportDateTo', today);
+    // Exam entry date is handled by the Jalali date picker in exam-entry.js
+    uploadDatePicker?.setToday();
+    reportFromPicker?.setJalali(jy, jm, 1);
+    reportToPicker?.setJalali(jy, jm, jd);
 }
 
 export async function loadStudentList(selectId) {
