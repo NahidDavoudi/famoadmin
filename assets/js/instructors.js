@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading } from './utils.js';
+import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 
 export async function loadInstructors() {
     const skeleton = document.getElementById('instructorsSkeleton');
@@ -57,7 +57,7 @@ function renderInstructorsTable(instructors) {
                     <button onclick="window.editInstructor(${i.id})" class="p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="ویرایش">
                         ${icon('edit', 'icon icon--lg')}
                     </button>
-                    <button onclick="window.deleteInstructor(${i.id}, '${(i.name || '').replace(/'/g, "\\'")}')" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
+                    <button onclick="window.deleteInstructor(${i.id}, '${(i.name || '').replace(/'/g, "\\'")}', this)" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
                         ${icon('trash', 'icon icon--lg')}
                     </button>
                 </div>
@@ -81,7 +81,7 @@ function getInstructorFormData(form) {
 
 export async function handleAddInstructor(e) {
     e.preventDefault();
-    const submitBtn = e.target.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(e.target);
 
     await withButtonLoading(submitBtn, async () => {
         await API.upload('/instructors', getInstructorFormData(e.target));
@@ -126,7 +126,7 @@ export async function handleEditInstructor(e) {
     e.preventDefault();
     const form = e.target;
     const id = form.querySelector('[name="id"]')?.value;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
         await API.upload(`/instructors/${id}`, getInstructorFormData(form), 'PUT');

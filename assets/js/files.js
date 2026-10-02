@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, formatDate, icon, withButtonLoading } from './utils.js';
+import { showAlert, escapeHtml, formatDate, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 import { setDefaultDates } from './ui.js';
 
 function uploadsBase() {
@@ -68,7 +68,7 @@ function renderFilesTable(files) {
                     <a href="${uploadsBase()}${encodeURI(f.file_path || '')}" target="_blank" class="inline-flex items-center p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="دانلود">
                         ${icon('download', 'icon icon--lg')}
                     </a>
-                    <button onclick="window.deleteFile(${f.id})" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
+                    <button onclick="window.deleteFile(${f.id}, this)" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
                         ${icon('trash', 'icon icon--lg')}
                     </button>
                 </div>
@@ -80,7 +80,7 @@ function renderFilesTable(files) {
 export async function handleFileUpload(e) {
     e.preventDefault();
     const form = e.target;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
         await API.upload('/files/upload', new FormData(form));

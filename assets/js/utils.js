@@ -42,6 +42,35 @@ export function icon(name, className = 'icon') {
     return `<i data-lucide="${lucide}" class="${className}" aria-hidden="true"></i>`;
 }
 
+function resolveButton(button) {
+    return typeof button === 'string' ? document.querySelector(button) : button;
+}
+
+function restoreButton(btn) {
+    if (!btn) return;
+    if (btn.dataset.originalText !== undefined) {
+        btn.disabled = btn.dataset.originalDisabled === 'true';
+        btn.innerHTML = btn.dataset.originalText;
+        delete btn.dataset.originalText;
+        delete btn.dataset.originalDisabled;
+    }
+    delete btn.dataset.loading;
+    btn.removeAttribute('aria-busy');
+}
+
+/**
+ * Resolve the submit button associated with a form.
+ * Modal forms often place the submit button outside the <form> and link it
+ * via the `form="<id>"` attribute, so `form.querySelector` is not enough.
+ * @param {HTMLFormElement} form
+ * @returns {HTMLElement|null}
+ */
+export function getFormSubmitButton(form) {
+    if (!form) return null;
+    return form.querySelector('[type="submit"]')
+        || (form.id ? document.querySelector(`button[type="submit"][form="${form.id}"]`) : null);
+}
+
 /**
  * Set loading state on a button
  * @param {HTMLElement|string} button - Button element or selector
@@ -50,33 +79,31 @@ export function icon(name, className = 'icon') {
  * @returns {Function} Cleanup function to restore button state
  */
 export function setButtonLoading(button, isLoading = true, loadingText = 'در حال انجام...') {
-    const btn = typeof button === 'string' ? document.querySelector(button) : button;
+    const btn = resolveButton(button);
     if (!btn) return () => { };
 
     if (isLoading) {
+        // Already loading: keep the current state and return a no-op cleanup
+        if (btn.dataset.loading === '1') return () => { };
+
         // Store original state
         btn.dataset.originalText = btn.innerHTML;
         btn.dataset.originalDisabled = btn.disabled;
+        btn.dataset.loading = '1';
+
+        // Icon-only buttons get a spinner without any text
+        const spinnerOnly = !btn.textContent.trim();
+        const spinner = '<span class="inline-block w-4 h-4 border-2 rounded-full animate-spin" style="border-color: currentColor; border-top-color: transparent;"></span>';
 
         // Set loading state
         btn.disabled = true;
-        btn.innerHTML = `<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin ml-2"></span>${loadingText}`;
+        btn.setAttribute('aria-busy', 'true');
+        btn.innerHTML = (spinnerOnly || !loadingText) ? spinner : `${spinner}<span class="mr-2">${loadingText}</span>`;
 
         // Return cleanup function
-        return () => {
-            btn.disabled = btn.dataset.originalDisabled === 'true';
-            btn.innerHTML = btn.dataset.originalText;
-            delete btn.dataset.originalText;
-            delete btn.dataset.originalDisabled;
-        };
+        return () => restoreButton(btn);
     } else {
-        // Restore original state
-        if (btn.dataset.originalText) {
-            btn.disabled = btn.dataset.originalDisabled === 'true';
-            btn.innerHTML = btn.dataset.originalText;
-            delete btn.dataset.originalText;
-            delete btn.dataset.originalDisabled;
-        }
+        restoreButton(btn);
         return () => { };
     }
 }
@@ -89,7 +116,12 @@ export function setButtonLoading(button, isLoading = true, loadingText = 'در �
  * @returns {Promise} Result of the operation
  */
 export async function withButtonLoading(button, operation, loadingText = 'در حال انجام...') {
-    const cleanup = setButtonLoading(button, true, loadingText);
+    const btn = resolveButton(button);
+
+    // Guard against duplicate triggers while an operation is in flight
+    if (btn && btn.dataset.loading === '1') return undefined;
+
+    const cleanup = setButtonLoading(btn, true, loadingText);
 
     try {
         const result = await operation();

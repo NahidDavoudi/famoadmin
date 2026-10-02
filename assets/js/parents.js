@@ -4,7 +4,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, icon, withButtonLoading } from './utils.js';
+import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 import { showConfirm } from './confirm-modal.js';
 import { setDetailStudentId, getDetailStudentId } from './config.js';
 import {
@@ -149,7 +149,7 @@ function renderParentContacts() {
                     <button onclick="window.startEditParentContact(${contact.id})" class="p-1.5 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition" title="ویرایش" aria-label="ویرایش مخاطب">
                         ${icon('edit', 'icon icon--sm')}
                     </button>
-                    <button onclick="window.deleteParentContact(${contact.id})" class="p-1.5 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50 transition" title="حذف" aria-label="حذف مخاطب">
+                    <button onclick="window.deleteParentContact(${contact.id}, this)" class="p-1.5 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50 transition" title="حذف" aria-label="حذف مخاطب">
                         ${icon('trash-2', 'icon icon--sm')}
                     </button>
                 </div>
@@ -233,7 +233,7 @@ export async function handleParentContactSubmit(e) {
     const form = e.target;
     const id = currentStudentId();
     const contactId = form.querySelector('[name="id"]').value;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     const data = {
         parent_name: form.querySelector('[name="parent_name"]').value.trim(),
@@ -272,7 +272,7 @@ export async function handleParentContactSubmit(e) {
     });
 }
 
-export async function deleteParentContact(id) {
+export async function deleteParentContact(id, button) {
     if (!isAdmin(window.currentUserRole)) return;
 
     await showConfirm({
@@ -280,13 +280,14 @@ export async function deleteParentContact(id) {
         confirmText: 'حذف',
         cancelText: 'انصراف',
         onConfirm: async () => {
-            try {
+            const btn = button || window.event?.target?.closest('button');
+
+            await withButtonLoading(btn, async () => {
                 await API.del(`/students/${currentStudentId()}/parent-contacts/${id}`);
                 await loadParentContacts();
                 showAlert('مخاطب حذف شد', 'success');
-            } catch (error) {
-                showAlert(error.message, 'error');
-            }
+            }, 'در حال حذف...')
+                .catch(error => showAlert(error.message, 'error'));
         }
     });
 }

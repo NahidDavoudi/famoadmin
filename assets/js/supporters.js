@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement } from './utils.js';
+import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement, getFormSubmitButton } from './utils.js';
 
 export async function loadSupporters() {
     const skeleton = document.getElementById('supportersSkeleton');
@@ -79,7 +79,7 @@ function renderSupportersTable(supporters) {
                             class="p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="ویرایش">
                         ${icon('edit', 'icon icon--lg')}
                     </button>
-                    <button onclick="window.deleteSupporter(${s.id})" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
+                    <button onclick="window.deleteSupporter(${s.id}, this)" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
                         ${icon('trash', 'icon icon--lg')}
                     </button>
                 </div>
@@ -91,7 +91,7 @@ function renderSupportersTable(supporters) {
 export async function handleAddSupporter(e) {
     e.preventDefault();
     const form = e.target;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
         await API.post('/supporters', {
@@ -121,7 +121,7 @@ export async function handleEditSupporter(e) {
     e.preventDefault();
     const form = e.target;
     const id = form.querySelector('[name="id"]').value;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     const payload = {
         name: form.querySelector('[name="name"]').value.trim(),

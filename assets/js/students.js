@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, getElementValue, setFormValues, icon, withButtonLoading } from './utils.js';
+import { showAlert, showModal, hideModal, escapeHtml, getElementValue, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 import { showConfirm } from './confirm-modal.js';
 import * as config from './config.js';
 import { studentsNeedingStatusChange, studentsWithoutAccount, summarizeResults } from './students-bulk-logic.js';
@@ -131,15 +131,15 @@ function renderStudentsTable(students) {
                             ${icon('edit', 'icon icon--sm')}
                         </button>
                         ${hasAccount ? `
-                            <button onclick="window.resetStudentPassword(${s.id})" class="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition" title="بازنشانی رمز" aria-label="بازنشانی رمز دانش‌آموز ${escapeHtml(s.name)}">
+                            <button onclick="window.resetStudentPassword(${s.id}, this)" class="p-1.5 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-50 transition" title="بازنشانی رمز" aria-label="بازنشانی رمز دانش‌آموز ${escapeHtml(s.name)}">
                                 ${icon('key', 'icon icon--sm')}
                             </button>
                         ` : `
-                            <button onclick="window.createStudentAccount(${s.id})" class="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition" title="ایجاد حساب" aria-label="ایجاد حساب ${escapeHtml(s.name)}">
+                            <button onclick="window.createStudentAccount(${s.id}, this)" class="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 transition" title="ایجاد حساب" aria-label="ایجاد حساب ${escapeHtml(s.name)}">
                                 ${icon('user-plus', 'icon icon--sm')}
                             </button>
                         `}
-                        <button onclick="window.toggleStudentStatus(${s.id})" class="p-1.5 rounded-lg ${isActive ? 'text-red-600' : 'text-green-600'} transition cursor-pointer" title="${isActive ? 'غیرفعال کردن' : 'فعال کردن'} دانش‌آموز ${escapeHtml(s.name)}">
+                        <button onclick="window.toggleStudentStatus(${s.id}, this)" class="p-1.5 rounded-lg ${isActive ? 'text-red-600' : 'text-green-600'} transition cursor-pointer" title="${isActive ? 'غیرفعال کردن' : 'فعال کردن'} دانش‌آموز ${escapeHtml(s.name)}">
                             ${icon(isActive ? 'minus' : 'plus', 'icon icon--sm')}
                         </button>
                     </div>
@@ -340,7 +340,7 @@ export async function handleAddStudent(e) {
     e.preventDefault();
 
     const form = e.target;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
     const phone = form.querySelector('[name="phone"]').value.trim();
     const nationalId = form.querySelector('[name="national_id"]').value.trim();
 
@@ -381,7 +381,7 @@ export async function handleEditStudent(e) {
     e.preventDefault();
 
     const form = e.target;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
     const id = form.querySelector('[name="id"]').value;
     const phone = form.querySelector('[name="phone"]').value.trim();
     const nationalId = form.querySelector('[name="national_id"]').value.trim();
@@ -468,14 +468,15 @@ export function clearStudentFilters() {
     loadStudents(1);
 }
 
-export async function toggleStudentStatus(id) {
+export async function toggleStudentStatus(id, button) {
     if (!confirm('آیا از تغییر وضعیت دانش‌آموز این اطمینان دارید؟')) return;
 
-    try {
+    const btn = button || window.event?.target?.closest('button');
+
+    await withButtonLoading(btn, async () => {
         await API.post(`/students/${id}/toggle-status`);
         loadStudents(currentPage);
         showAlert('وضعیت دانش‌آموز تغییر یافت', 'success');
-    } catch (error) {
-        showAlert(error.message, 'error');
-    }
+    }, 'در حال تغییر...')
+        .catch(error => showAlert(error.message, 'error'));
 }

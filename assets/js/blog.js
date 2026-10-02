@@ -4,7 +4,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, icon, withButtonLoading } from './utils.js';
+import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 
 let editorReady = false;
 
@@ -64,7 +64,7 @@ function renderBlogTable(posts) {
                             class="p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="ویرایش">
                         ${icon('edit', 'icon icon--lg')}
                     </button>
-                    <button onclick="window.deleteBlogPost(${p.id})" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
+                    <button onclick="window.deleteBlogPost(${p.id}, this)" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
                         ${icon('trash', 'icon icon--lg')}
                     </button>
                 </div>
@@ -220,7 +220,7 @@ export async function handleBlogSubmit(e) {
         is_published: published ? 1 : 0,
     };
 
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
     await withButtonLoading(submitBtn, async () => {
         if (id) await API.put(`/blog/posts/${id}`, payload);
         else await API.post('/blog/posts', payload);

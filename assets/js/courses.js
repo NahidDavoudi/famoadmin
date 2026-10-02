@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading } from './utils.js';
+import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 
 const ICON_MAP = {
     'fa-book': 'book',
@@ -98,7 +98,7 @@ function renderCoursesTable(courses) {
                     <button onclick="window.editCourse(${c.id})" class="p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="ویرایش">
                         ${icon('edit', 'icon icon--lg')}
                     </button>
-                    <button onclick="window.deleteCourse(${c.id}, '${(c.name || '').replace(/'/g, "\\'")}')" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
+                    <button onclick="window.deleteCourse(${c.id}, '${(c.name || '').replace(/'/g, "\\'")}', this)" class="p-2 rounded-lg text-red-600 hover:text-red-800 hover:bg-red-50" title="حذف">
                         ${icon('trash', 'icon icon--lg')}
                     </button>
                 </div>
@@ -109,7 +109,7 @@ function renderCoursesTable(courses) {
 
 export async function handleAddCourse(e) {
     e.preventDefault();
-    const submitBtn = e.target.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(e.target);
 
     await withButtonLoading(submitBtn, async () => {
         await API.upload('/courses', buildCourseFormData(e.target));
@@ -155,7 +155,7 @@ export async function handleEditCourse(e) {
     e.preventDefault();
     const form = e.target;
     const id = form.querySelector('[name="id"]')?.value;
-    const submitBtn = form.querySelector('[type="submit"]');
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
         await API.upload(`/courses/${id}`, buildCourseFormData(form), 'PUT');
