@@ -21,6 +21,10 @@ function isAdminUser() {
     return window.currentUserRole === 'admin';
 }
 
+function invalidateStudentsCache() {
+    try { localStorage.removeItem('students_list_cache'); } catch (_) {}
+}
+
 export async function loadStudents(page = 1) {
     const search = getElementValue('filterSearch');
     const field = getElementValue('filterField');
@@ -218,6 +222,8 @@ async function runBulkOperation(label, ids, task) {
         bulkRunning = false;
     }
 
+    invalidateStudentsCache();
+
     if (summary.failed === 0) {
         showAlert(`${summary.succeeded} مورد با موفقیت انجام شد`, 'success');
     } else if (summary.succeeded === 0) {
@@ -363,6 +369,7 @@ export async function handleAddStudent(e) {
         });
         hideModal('addStudentModal');
         form.reset();
+        invalidateStudentsCache();
         loadStudents();
         showAlert('دانش‌آموز اضافه شد و حساب کاربری ایجاد شد', 'success');
     }, 'در حال افزودن...')
@@ -404,6 +411,7 @@ export async function handleEditStudent(e) {
             field: form.querySelector('[name="field"]').value,
         });
         hideModal('editStudentModal');
+        invalidateStudentsCache();
         loadStudents(currentPage);
         showAlert('تغییرات ذخیره شد', 'success');
     }, 'در حال ذخیره...')
@@ -420,6 +428,7 @@ export async function deleteStudent(id, button) {
 
             await withButtonLoading(btn, async () => {
                 await API.del(`/students/${id}`);
+                invalidateStudentsCache();
                 loadStudents(currentPage);
                 showAlert('دانش‌آموز حذف شد', 'success');
             }, 'در حال حذف...')

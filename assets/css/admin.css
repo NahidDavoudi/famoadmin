@@ -17,6 +17,41 @@
     font-family: 'Vazirmatn';
 }
 
+/* ===== CLICKABLE AFFORDANCE ===== */
+/* Point at anything that is actually actionable (buttons, links, selects,
+   summary/disclosure widgets, labelled controls, inline [onclick] targets
+   such as exam session rows, checkbox/radio inputs). */
+button,
+[role="button"],
+a[href],
+select,
+summary,
+[onclick],
+label[for],
+input[type="checkbox"],
+input[type="radio"] {
+    cursor: pointer;
+}
+
+/* Non-clickable / disabled states must never show a pointer.
+   Placed AFTER the block above so it wins ties, and given extra-specific
+   selectors for elements whose pointer rule uses attribute selectors. */
+button:disabled,
+button[disabled],
+button.disabled,
+button[aria-disabled="true"],
+select:disabled,
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
+a[href].disabled,
+a[href][aria-disabled="true"],
+label[for].disabled,
+[disabled],
+.disabled,
+[aria-disabled="true"] {
+    cursor: not-allowed;
+}
+
 /* ===== INPUT SYSTEM ===== */
 
 /* Size variants: sm (40px), md (48px) */
@@ -738,12 +773,30 @@ table tbody td {
 @media (max-width: 767px) {
     table.responsive-table {
         min-width: 0 !important;
+        width: 100%;
     }
 
-    .table-wrap {
+    /* Card-mode wrapper: drop the outer box so the individual cards stand
+       out. Scoped with .page-content to out-specify the later base
+       .table-wrap rule (which is not inside a media query). */
+    .page-content .table-wrap {
         background: transparent;
+        border-radius: 0;
         box-shadow: none;
         border: none;
+        overflow: visible;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tables WITHOUT .responsive-table stay real tables: keep them
+       horizontally scrollable and touch friendly. */
+    .page-content .table-wrap.overflow-x-auto {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Tables WITH .responsive-table become cards and never scroll sideways. */
+    .page-content .table-wrap:has(> table.responsive-table) {
         overflow: visible;
     }
 
@@ -754,8 +807,8 @@ table tbody td {
     table.responsive-table tbody {
         display: flex;
         flex-direction: column;
-        gap: var(--ds-space-3);
-        /* 12px */
+        gap: var(--ds-space-4);
+        /* 16px separation between cards */
     }
 
     table.responsive-table tbody tr {
@@ -768,6 +821,7 @@ table tbody td {
         box-shadow: var(--ds-shadow-sm);
         border: 1px solid var(--ds-color-neutral-100);
         border-right: 4px solid var(--ds-color-primary);
+        overflow: hidden;
     }
 
     table.responsive-table tbody tr:hover {
@@ -776,28 +830,41 @@ table tbody td {
 
     table.responsive-table tbody td {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
-        padding: var(--ds-space-1) 0;
-        /* 4px vertical */
+        gap: var(--ds-space-1) var(--ds-space-3);
+        padding: var(--ds-space-2) 0;
+        /* 8px vertical */
         border-bottom: 1px solid var(--ds-color-neutral-100);
         font-size: var(--ds-text-xs);
+        min-width: 0;
+        text-align: right;
+        line-height: var(--ds-leading-relaxed);
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
+    /* First cell acts as the card title / header accent */
     table.responsive-table tbody td:first-child {
-        font-weight: var(--ds-weight-medium);
+        font-weight: var(--ds-weight-bold);
         color: var(--ds-color-primary-800);
         font-size: var(--ds-text-sm);
-        padding-bottom: var(--ds-space-2);
-        /* 8px */
-        border-bottom: 2px solid var(--ds-color-neutral-100);
+        padding: var(--ds-space-2) var(--ds-space-5);
+        margin: calc(-1 * var(--ds-space-1)) calc(-1 * var(--ds-space-5)) var(--ds-space-1);
+        border-bottom: 2px solid var(--ds-color-primary-light-200);
+        background: color-mix(in srgb, var(--ds-color-primary-light-200), transparent 72%);
+        border-radius: var(--ds-radius-sm);
     }
 
     table.responsive-table tbody td:last-child {
         border-bottom: none;
-        padding-top: var(--ds-space-1);
-        /* 4px */
+        padding-top: var(--ds-space-2);
+        /* 8px */
         justify-content: flex-start;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--ds-space-2);
     }
 
     table.responsive-table tbody td::before {
@@ -805,13 +872,67 @@ table tbody td {
         font-weight: var(--ds-weight-semibold);
         color: var(--ds-color-primary);
         font-size: var(--ds-text-xs);
-        flex-shrink: 0;
+        flex: 0 0 auto;
+        max-width: 45%;
         margin-left: var(--ds-space-2);
         /* 8px */
+        white-space: normal;
+        overflow-wrap: break-word;
+        text-align: right;
     }
 
     table.responsive-table tbody td:first-child::before {
         display: none;
+    }
+
+    /* Values (text, inline elements) get room to wrap without overlapping
+       the label. */
+    table.responsive-table tbody td>* {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* Numeric / LTR values stay aligned and readable. */
+    table.responsive-table tbody td[dir="ltr"]>*,
+    table.responsive-table tbody td .tabular-nums,
+    table.responsive-table tbody td .num {
+        direction: ltr;
+        text-align: left;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Action column: label on its own line, buttons/links wrap and never
+       overflow the card. */
+    table.responsive-table tbody td:last-child::before {
+        flex-basis: 100%;
+        margin: 0 0 var(--ds-space-1);
+    }
+
+    table.responsive-table tbody td button,
+    table.responsive-table tbody td a[href] {
+        flex: 0 1 auto;
+        white-space: nowrap;
+    }
+
+    /* Media inside cells must never overflow the card. */
+    table.responsive-table tbody td img,
+    table.responsive-table tbody td svg,
+    table.responsive-table tbody td canvas,
+    table.responsive-table tbody td video,
+    table.responsive-table tbody td .thumbnail,
+    table.responsive-table tbody td .avatar {
+        max-width: 100%;
+        height: auto;
+        flex-shrink: 0;
+    }
+
+    table.responsive-table tbody td img.rounded-full,
+    table.responsive-table tbody td .avatar {
+        max-width: var(--ds-space-6);
+        /* 48px */
+        max-height: var(--ds-space-6);
     }
 
     /* Empty state in card view */
@@ -819,6 +940,9 @@ table tbody td {
         display: block;
         text-align: center;
         border: none;
+        background: transparent;
+        margin: 0;
+        padding: var(--ds-space-4) 0;
     }
 
     table.responsive-table tbody tr td[colspan]::before {

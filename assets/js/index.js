@@ -16,6 +16,7 @@ import { editInstructor, deleteInstructor } from './instructors.js?v=2';
 import { navigateTo } from './nav.js';
 import { loadReports } from './reports.js';
 import { loadBlogPosts, handleBlogSubmit, openBlogEditor, editBlogPost, deleteBlogPost } from './blog.js';
+import { initExamsRefresh } from './exams-refresh.js';
 
 const { onReady } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 
@@ -71,6 +72,7 @@ const initializeAdmin = () => {
     adminInitialized = true;
 
     init();
+    initExamsRefresh();
 
     // First subject row on exam entry page
     const subjectsContainer = document.getElementById('subjectsContainer');
