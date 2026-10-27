@@ -4,35 +4,42 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, updateStatElement } from './utils.js';
+import { withTriggeredButton } from './clickGuard.js';
 import { formatJalaliDate } from './jalali.js';
 import * as config from './config.js';
 import { getBaseChartOptions, CHART_COLORS } from './chart-theme.js';
 
 const ApexCharts = window.ApexCharts;
 
+/**
+ * بارگذاری گزارش‌ها با loading روی دکمه‌ی محرک (دکمه‌ی فیلتر).
+ * زمانی که از navigateTo صدا زده می‌شود، دکمه‌ی محرک null است و فقط skeleton/chart نمایش داده می‌شود.
+ */
 export async function loadReports() {
-    try {
-        const res = await API.get('/reports/stats');
-        const reports = (res.data?.stats || []).map(r => ({
-            report_date: r.date,
-            replied: Number(r.replied || 0),
-            pending: Number(r.pending || 0),
-            total: Number(r.replied || 0) + Number(r.pending || 0),
-        }));
+    return withTriggeredButton(async () => {
+        try {
+            const res = await API.get('/reports/stats');
+            const reports = (res.data?.stats || []).map(r => ({
+                report_date: r.date,
+                replied: Number(r.replied || 0),
+                pending: Number(r.pending || 0),
+                total: Number(r.replied || 0) + Number(r.pending || 0),
+            }));
 
-        const total = reports.reduce((sum, r) => sum + r.total, 0);
-        const pending = reports.reduce((sum, r) => sum + r.pending, 0);
-        const replied = reports.reduce((sum, r) => sum + r.replied, 0);
+            const total = reports.reduce((sum, r) => sum + r.total, 0);
+            const pending = reports.reduce((sum, r) => sum + r.pending, 0);
+            const replied = reports.reduce((sum, r) => sum + r.replied, 0);
 
-        updateStatElement('report-total', total);
-        updateStatElement('report-pending', pending);
-        updateStatElement('report-replied', replied);
+            updateStatElement('report-total', total);
+            updateStatElement('report-pending', pending);
+            updateStatElement('report-replied', replied);
 
-        updateReportsChart(reports);
-    } catch (error) {
-        console.error('Error loading reports:', error);
-        showAlert('خطا در بارگذاری گزارش‌ها', 'error');
-    }
+            updateReportsChart(reports);
+        } catch (error) {
+            console.error('Error loading reports:', error);
+            showAlert('خطا در بارگذاری گزارش‌ها', 'error');
+        }
+    }, 'در حال بارگذاری...');
 }
 
 function updateReportsChart(reports) {

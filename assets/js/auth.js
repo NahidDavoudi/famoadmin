@@ -6,6 +6,7 @@
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { toggleElement } from './utils.js';
 import { navigateTo } from './nav.js';
+import { withTriggeredButton } from './clickGuard.js';
 
 const ALLOWED_ROLES = ['admin', 'supporter'];
 
@@ -73,8 +74,15 @@ export async function checkAuth() {
     showMainPanel(user.username, user.role);
 }
 
+/**
+ * خروج از حساب کاربری — با loading state روی دکمه‌ی خروج.
+ * با withTriggeredButton دکمه‌ی محرک را پیدا می‌کند و loading نشان می‌دهد.
+ * جلوی double-click هم گرفته می‌شود (توسط clickGuard سراسری).
+ */
 export async function handleLogout(e) {
     if (e) e.preventDefault();
-    await API.logout();
+    await withTriggeredButton(async () => {
+        await API.logout();
+    }, 'در حال خروج...');
     showLoginPage();
 }

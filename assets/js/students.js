@@ -5,6 +5,7 @@
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, getElementValue, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 import { showConfirm } from './confirm-modal.js';
+import { withTriggeredButton } from './clickGuard.js';
 import * as config from './config.js';
 import { studentsNeedingStatusChange, studentsWithoutAccount, summarizeResults } from './students-bulk-logic.js';
 
@@ -25,46 +26,53 @@ function invalidateStudentsCache() {
     try { localStorage.removeItem('students_list_cache'); } catch (_) {}
 }
 
+/**
+ * بارگذاری لیست دانش‌آموزان با loading روی دکمه‌ی محرک.
+ * دکمه‌ی محرک توسط clickGuard سراسری شناسایی می‌شود (دکمه‌ی فیلتر، صفحه‌بندی، یا هر دکمه‌ی دیگر).
+ * skeleton loader همچنان در جدول نمایش داده می‌شود.
+ */
 export async function loadStudents(page = 1) {
-    const search = getElementValue('filterSearch');
-    const field = getElementValue('filterField');
-    const grade = getElementValue('filterGrade');
-    const status = document.getElementById('filterStatus')?.value || '';
+    return withTriggeredButton(async () => {
+        const search = getElementValue('filterSearch');
+        const field = getElementValue('filterField');
+        const grade = getElementValue('filterGrade');
+        const status = document.getElementById('filterStatus')?.value || '';
 
-    currentPage = page;
-    selectedIds.clear();
+        currentPage = page;
+        selectedIds.clear();
 
-    const skeleton = document.getElementById('studentsSkeleton');
-    const tableWrap = document.querySelector('#studentsTable')?.closest('.table-wrap');
-    const emptyState = document.getElementById('studentsEmptyState');
+        const skeleton = document.getElementById('studentsSkeleton');
+        const tableWrap = document.querySelector('#studentsTable')?.closest('.table-wrap');
+        const emptyState = document.getElementById('studentsEmptyState');
 
-    if (skeleton) skeleton.classList.remove('hidden');
-    if (tableWrap) tableWrap.style.display = 'none';
-    if (emptyState) emptyState.classList.add('hidden');
+        if (skeleton) skeleton.classList.remove('hidden');
+        if (tableWrap) tableWrap.style.display = 'none';
+        if (emptyState) emptyState.classList.add('hidden');
 
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    if (field) params.set('field', field);
-    if (grade) params.set('grade', grade);
-    if (status === 'active') params.set('status', '1');
-    else if (status === 'inactive') params.set('status', '0');
-    params.set('page', String(currentPage));
-    params.set('perPage', String(PAGE_SIZE));
+        const params = new URLSearchParams();
+        if (search) params.set('search', search);
+        if (field) params.set('field', field);
+        if (grade) params.set('grade', grade);
+        if (status === 'active') params.set('status', '1');
+        else if (status === 'inactive') params.set('status', '0');
+        params.set('page', String(currentPage));
+        params.set('perPage', String(PAGE_SIZE));
 
-    try {
-        const res = await API.get(`/students?${params.toString()}`);
-        const students = res.data || [];
-        currentStudents = students;
-        totalPages = res.pagination?.total_pages || 1;
-        totalRecords = res.pagination?.total || 0;
-        renderStudentsTable(students);
-        renderPagination();
-    } catch (error) {
-        console.error('Error loading students:', error);
-        showAlert('خطا در بارگذاری دانش‌آموزان', 'error');
-    } finally {
-        if (skeleton) skeleton.classList.add('hidden');
-    }
+        try {
+            const res = await API.get(`/students?${params.toString()}`);
+            const students = res.data || [];
+            currentStudents = students;
+            totalPages = res.pagination?.total_pages || 1;
+            totalRecords = res.pagination?.total || 0;
+            renderStudentsTable(students);
+            renderPagination();
+        } catch (error) {
+            console.error('Error loading students:', error);
+            showAlert('خطا در بارگذاری دانش‌آموزان', 'error');
+        } finally {
+            if (skeleton) skeleton.classList.add('hidden');
+        }
+    }, 'در حال بارگذاری...');
 }
 
 function renderStudentsTable(students) {
@@ -370,7 +378,7 @@ export async function handleAddStudent(e) {
         hideModal('addStudentModal');
         form.reset();
         invalidateStudentsCache();
-        loadStudents();
+        await loadStudents();
         showAlert('دانش‌آموز اضافه شد و حساب کاربری ایجاد شد', 'success');
     }, 'در حال افزودن...')
         .catch(error => showAlert(error.message, 'error'));
@@ -412,7 +420,7 @@ export async function handleEditStudent(e) {
         });
         hideModal('editStudentModal');
         invalidateStudentsCache();
-        loadStudents(currentPage);
+        await loadStudents(currentPage);
         showAlert('تغییرات ذخیره شد', 'success');
     }, 'در حال ذخیره...')
         .catch(error => showAlert(error.message, 'error'));
@@ -429,7 +437,7 @@ export async function deleteStudent(id, button) {
             await withButtonLoading(btn, async () => {
                 await API.del(`/students/${id}`);
                 invalidateStudentsCache();
-                loadStudents(currentPage);
+                await loadStudents(currentPage);
                 showAlert('دانش‌آموز حذف شد', 'success');
             }, 'در حال حذف...')
                 .catch(error => showAlert(error.message, 'error'));
@@ -445,7 +453,7 @@ export async function createStudentAccount(id, button) {
 
     await withButtonLoading(btn, async () => {
         await API.post(`/students/${id}/create-account`);
-        loadStudents(currentPage);
+        await loadStudents(currentPage);
         showAlert('حساب کاربری ایجاد شد', 'success');
     }, 'در حال ایجاد...')
         .catch(error => showAlert(error.message, 'error'));
@@ -463,18 +471,24 @@ export async function resetStudentPassword(id, button) {
         .catch(error => showAlert(error.message, 'error'));
 }
 
-export function clearStudentFilters() {
-    const search = document.getElementById('filterSearch');
-    const field = document.getElementById('filterField');
-    const grade = document.getElementById('filterGrade');
-    const statusFilterEl = document.getElementById('filterStatus');
+/**
+ * پاک‌کردن فیلترها با loading روی دکمه‌ی محرک.
+ * سپس loadStudents(1) صدا زده می‌شود (که skeleton نشان می‌دهد).
+ */
+export async function clearStudentFilters() {
+    return withTriggeredButton(async () => {
+        const search = document.getElementById('filterSearch');
+        const field = document.getElementById('filterField');
+        const grade = document.getElementById('filterGrade');
+        const statusFilterEl = document.getElementById('filterStatus');
 
-    if (search) search.value = '';
-    if (field) field.value = '';
-    if (grade) grade.value = '';
-    if (statusFilterEl) statusFilterEl.value = '';
+        if (search) search.value = '';
+        if (field) field.value = '';
+        if (grade) grade.value = '';
+        if (statusFilterEl) statusFilterEl.value = '';
 
-    loadStudents(1);
+        await loadStudents(1);
+    }, 'در حال پاک‌سازی...');
 }
 
 export async function toggleStudentStatus(id, button) {
@@ -484,7 +498,7 @@ export async function toggleStudentStatus(id, button) {
 
     await withButtonLoading(btn, async () => {
         await API.post(`/students/${id}/toggle-status`);
-        loadStudents(currentPage);
+        await loadStudents(currentPage);
         showAlert('وضعیت دانش‌آموز تغییر یافت', 'success');
     }, 'در حال تغییر...')
         .catch(error => showAlert(error.message, 'error'));

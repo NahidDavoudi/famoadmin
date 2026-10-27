@@ -4,6 +4,7 @@
 
 import * as config from './config.js';
 import { hideModal } from './utils.js';
+import { installClickGuard } from './clickGuard.js';
 import { checkAuth, handleLogout } from './auth.js';
 import { navigateTo } from './nav.js';
 import { loadStudents } from './students.js';
@@ -12,7 +13,7 @@ import { handleParentContactSubmit } from './parents.js';
 import { handleAddSupporter, handleEditSupporter } from './supporters.js';
 import { handleFileUpload } from './files.js';
 import { handleAddCourse, handleEditCourse } from './courses.js';
-import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=2';
+import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=3';
 import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry.js';
 import { handleBlogSubmit } from './blog.js';
 import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates, initDatePickers } from './ui.js';
@@ -187,6 +188,9 @@ function setupExamFilters() {
 }
 
 export function init() {
+    // نصب guard سراسری کلیک — جلوی double-click را می‌گیرد و دکمه‌ی محرک را ذخیره می‌کند
+    installClickGuard();
+
     checkAuth();
     setupEventListeners();
     initDatePickers();

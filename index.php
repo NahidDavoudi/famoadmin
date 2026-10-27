@@ -16,6 +16,7 @@
     <script src="<?= famo_asset('js/libs/apexcharts.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/libs/lucide.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/lucide-adapter.js', '') ?>"></script>
+    <link rel="stylesheet" href="assets/css/admin-modal-fix.css">  <!-- بعد از admin.css -->
     <!-- Favicon Multi-size -->
     <link rel="icon" type="image/png" sizes="16x16" href="<?php echo famo_asset('images/favicon-16.png', $base . '../shared/images/favicon-16.png'); ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?php echo famo_asset('images/favicon-32.png', $base . '../shared/images/favicon-32.png'); ?>">
@@ -986,7 +987,7 @@
                                 <tr>
                                     <th class="px-5 py-4 text-right">عنوان</th>
                                     <th class="px-5 py-4 text-right">دسته‌بندی</th>
-                                    <th class="px-5 py-4 text-right">اسلاغ</th>
+                                    <th class="px-5 py-4 text-right">اسلاگ</th>
                                     <th class="px-5 py-4 text-right">وضعیت</th>
                                     <th class="px-5 py-4 text-right">بازدیدها</th>
                                     <th class="px-5 py-4 text-right">تاریخ انتشار</th>
@@ -2026,8 +2027,7 @@
                 </div>
                 <button type="button" onclick="hideModal('addFileModal')" class="modal-close" aria-label="بستن">
                     <i data-lucide="x" class="icon" aria-hidden="true"></i>
-            </div>
-
+                </button>
             <div class="modal-body">
                 <form id="addFileForm" enctype="multipart/form-data" class="modal-form">
                     <div class="form-group">

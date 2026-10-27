@@ -1,0 +1,142 @@
+/**
+ * admin-modal-fix.css
+ * رفع مشکل overflow مودال‌ها — header و footer ثابت، فقط body اسکرول می‌شود.
+ *
+ * این فایل باید بعد از admin.css و بعد از output.css (Tailwind) لود شود
+ * تا بتواند utility classهای overflow-y-auto و max-h-[90vh] را override کند.
+ *
+ * نصب در index.php:
+ *   <link rel="stylesheet" href="assets/css/admin.css">
+ *   <link rel="stylesheet" href="assets/css/admin-modal-fix.css">  ← بعد از admin.css
+ *
+ * یا به‌جای فایل جدا، می‌توانید این قوانین را به انتهای admin.css اضافه کنید.
+ */
+
+/* ────────────────────────────────────────────────────────────
+ * ۱) مودال به‌عنوان flex column — ارتفاع محدود، overflow فقط روی body
+ * ──────────────────────────────────────────────────────────── */
+
+/* override Tailwind's overflow-y-auto on .modal element */
+.modal,
+.modal.modal-sm,
+.modal.modal-md,
+.modal.modal-lg,
+.modal.modal-xl {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;  /* اسکرول را فقط body انجام می‌دهد */
+}
+
+/* max-h-[90vh] از HTML حفظ می‌شود؛ اگر utility override نشد، اینجا هم تعریف می‌کنیم */
+.modal {
+    max-height: 90vh;
+}
+
+/* header و footer ثابت — جمع نمی‌شوند و اسکرول نمی‌شوند */
+.modal-header,
+.modal-footer {
+    flex-shrink: 0;
+}
+
+/* فقط body اسکرول می‌شود */
+.modal-body {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    min-height: 0;  /* ضروری برای flex child با overflow — بدون این مقدار flex آن را نادیده می‌گیرد */
+    -webkit-overflow-scrolling: touch;  /* iOS momentum scroll */
+}
+
+/* ────────────────────────────────────────────────────────────
+ * ۲) بهبود تجربه‌ی کاربری
+ * ──────────────────────────────────────────────────────────── */
+
+/* اسکرول‌بار نازک‌تر و هم‌رنگ تم — اختیاری */
+.modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+.modal-body::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+}
+
+/* header با border پایین ظریف — مرز بصری بین header و body */
+.modal-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* footer با border بالا — مرز بصری بین body و footer */
+.modal-footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.95);
+    border-bottom-left-radius: inherit;
+    border-bottom-right-radius: inherit;
+}
+
+/* جلوگیری از بریدن دکمه‌های footer روی موبایل */
+.modal-footer-buttons {
+    width: 100%;
+    gap: 0.5rem;
+}
+
+/* ────────────────────────────────────────────────────────────
+ * ۳) تنظیمات mobile — مودال تمام صفحه روی صفحه‌های کوچک
+ * ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+    /* روی موبایل، backdrop padding کمتر و modal به ارتفاع کامل نزدیک‌تر */
+    .modal-backdrop {
+        padding: 0.5rem !important;
+    }
+
+    .modal {
+        max-height: 95vh !important;
+        border-radius: 1.5rem !important;
+    }
+
+    /* body روی موبایل padding مناسب */
+    .modal-body {
+        padding: 1rem;
+    }
+}
+
+/* ────────────────────────────────────────────────────────────
+ * ۴) focus trap — وقتی modal-body اسکرول می‌شود، focus قابل رویت باشد
+ * ──────────────────────────────────────────────────────────── */
+
+.modal-body:focus-within {
+    /* بدون تأثیر بصری، فقط برای assistive tech */
+    outline: none;
+}
+
+/* اطمینان از این که inputهای داخل modal-body به‌خاطر focus نقطه‌ی focus-cut-off نشوند */
+.modal-body :focus {
+    scroll-margin-block: 1rem;
+}
+
+/* ────────────────────────────────────────────────────────────
+ * ۵) حفظ فاصله‌ی داخلی footer در صورت وجود multiple buttons
+ * ──────────────────────────────────────────────────────────── */
+
+.modal-footer-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+/* ────────────────────────────────────────────────────────────
+ * ۶) حل مشکل modal با تصویر preview بزرگ (آواتار)
+ * وقتی data-avatar-preview یک تصویر بزرگ نشان می‌دهد، body ارتفاع بیشتری می‌گیرد
+ * این مقدار اطمینان می‌دهد که preview داخل اسکرول قرار می‌گیرد نه خارج از آن
+ * ──────────────────────────────────────────────────────────── */
+
+[data-avatar-preview] img {
+    max-width: 100%;
+    height: auto;
+}

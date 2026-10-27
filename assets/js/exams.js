@@ -6,6 +6,7 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, escapeHtml, icon } from './utils.js';
+import { withTriggeredButton } from './clickGuard.js';
 import * as config from './config.js';
 import { formatGregorianToJalali, formatJalaliLong, toJalali } from './jalali.js';
 import { setupTableResponsive } from './ui.js';
@@ -346,11 +347,16 @@ export function goBackFromExamDetails() {
     else if (date) loadExamStudents(date);
 }
 
-/** برای دکمه پاک کردن فیلتر */
-export function clearExamsFilter() {
-    const yearSelect = document.getElementById('examsFilterYear');
-    const monthSelect = document.getElementById('examsFilterMonth');
-    if (yearSelect) yearSelect.value = '';
-    if (monthSelect) monthSelect.value = '';
-    loadExams();
+/**
+ * پاک‌کردن فیلتر آزمون‌ها با loading روی دکمه‌ی محرک.
+ * سپس loadExams() صدا زده می‌شود.
+ */
+export async function clearExamsFilter() {
+    return withTriggeredButton(async () => {
+        const yearSelect = document.getElementById('examsFilterYear');
+        const monthSelect = document.getElementById('examsFilterMonth');
+        if (yearSelect) yearSelect.value = '';
+        if (monthSelect) monthSelect.value = '';
+        await loadExams();
+    }, 'در حال پاک‌سازی...');
 }
