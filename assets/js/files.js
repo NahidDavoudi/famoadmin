@@ -4,6 +4,7 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, escapeHtml, formatDate, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { uploadFormWithProgress } from './upload-progress.js';
 import { formatJalaliDate } from './jalali.js';
 import { setDefaultDates } from './ui.js';
 
@@ -78,13 +79,28 @@ function renderFilesTable(files) {
     `).join('');
 }
 
+/**
+ * نقطه‌ی درج نوار پیشرفت.
+ * در فرم صفحه‌ی فایل‌ها، فیلد فایل داخل یک grid چهارستونه است؛ نوار را بعد از
+ * خودِ grid (بالای ردیف دکمه‌ها) می‌گذاریم تا تمام عرض را بگیرد.
+ */
+function progressAnchor(form) {
+    const grid = form.querySelector('[name="file"]')?.closest('.grid');
+    return grid || undefined;
+}
+
 export async function handleFileUpload(e) {
     e.preventDefault();
     const form = e.target;
     const submitBtn = getFormSubmitButton(form);
+    const file = form.querySelector('[name="file"]')?.files?.[0] || null;
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload('/files/upload', new FormData(form));
+        await uploadFormWithProgress(form, `${API.base}/files/upload`, new FormData(form), {
+            anchor: progressAnchor(form),
+            maxSizeMB: 10,          // مطابق متن راهنمای فرم: «حداکثر: 10MB»
+            file,
+        });
         form.reset();
         setDefaultDates();
         loadFiles();

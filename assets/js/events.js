@@ -13,7 +13,7 @@ import { handleParentContactSubmit } from './parents.js';
 import { handleAddSupporter, handleEditSupporter } from './supporters.js';
 import { handleFileUpload } from './files.js';
 import { handleAddCourse, handleEditCourse } from './courses.js';
-import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=3';
+import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=4';
 import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry.js';
 import { handleBlogSubmit } from './blog.js';
 import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates, initDatePickers } from './ui.js';

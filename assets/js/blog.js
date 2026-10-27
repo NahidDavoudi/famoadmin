@@ -2,9 +2,10 @@
  * Admin Panel - Blog Posts (unified API)
  * Dedicated page + lightweight WYSIWYG editor
  */
-import { uploadWithProgress } from './utils.js';   // ← به import های بالای فایل اضافه کنید
+
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton, formatDate } from './utils.js';
+import { uploadFormWithProgress } from './upload-progress.js';
 
 let editorReady = false;
 
@@ -230,67 +231,49 @@ export async function handleBlogSubmit(e) {
     }
 
     const id        = form.querySelector('[name="id"]').value;
-    const isEdit    = !!id;
     const published = !!form.querySelector('[name="is_published"]').checked;
     const coverFile = form.querySelector('[name="cover_image_file"]')?.files?.[0] || null;
     const coverUrl  = form.querySelector('[name="cover_image"]')?.value.trim() || '';
 
-    const payload = {
-        title:            form.querySelector('[name="title"]').value.trim(),
-        slug:             form.querySelector('[name="slug"]').value.trim(),
-        category:         form.querySelector('[name="category"]').value,
-        excerpt:          form.querySelector('[name="excerpt"]').value.trim(),
-        content:          input.value,
-        meta_description: form.querySelector('[name="meta_description"]').value.trim(),
-        is_published:     published ? 1 : 0,
-    };
-
     const submitBtn = getFormSubmitButton(form);
-    const endpoint  = isEdit ? `/blog/posts/${id}` : '/blog/posts';
-    const method    = isEdit ? 'PUT' : 'POST';
-
-    // ── حالت بدون فایل: JSON (سازگار با گذشته) ──
-    if (!coverFile) {
-        await withButtonLoading(submitBtn, async () => {
-            const body = { ...payload, cover_image: coverUrl || null };
-            if (isEdit) await API.put(endpoint, body);
-            else        await API.post(endpoint, body);
-            if (typeof window.navigateTo === 'function') window.navigateTo('blog');
-            showAlert(isEdit ? 'پست به‌روزرسانی شد' : 'پست جدید اضافه شد', 'success');
-        }, 'در حال ذخیره...').catch(err => showAlert(err.message, 'error'));
-        return;
-    }
-
-    // ── حالت با فایل: multipart + XHR + progress ──
-    const fd = new FormData();
-    fd.append('cover_image_file', coverFile);
-    if (coverUrl) fd.append('cover_image', coverUrl);
-    for (const [k, v] of Object.entries(payload)) {
-        fd.append(k, String(v));
-    }
-
-    const wrap  = document.getElementById('blogUploadProgress');
-    const fill  = document.getElementById('blogUploadProgressFill');
-    const label = document.getElementById('blogUploadProgressText');
-    if (wrap) wrap.hidden = false;
-
     await withButtonLoading(submitBtn, async () => {
-        await uploadWithProgress(`${API.base}${endpoint}`, fd, {
-            method,
-            onProgress: (pct, phase) => {
-                if (fill)  fill.style.width = pct + '%';
-                if (label) label.textContent = phase === 'processing' ? 'در حال پردازش...' : pct + '%';
-            },
-        });
+        if (coverFile) {
+            // ارسال multipart فقط وقتی فایل هست
+            const fd = new FormData();
+            fd.append('title', form.querySelector('[name="title"]').value.trim());
+            fd.append('slug', form.querySelector('[name="slug"]').value.trim());
+            fd.append('category', form.querySelector('[name="category"]').value);
+            fd.append('excerpt', form.querySelector('[name="excerpt"]').value.trim());
+            fd.append('content', input.value);
+            fd.append('meta_description', form.querySelector('[name="meta_description"]').value.trim());
+            fd.append('is_published', published ? '1' : '0');
+            fd.append('cover_image_file', coverFile);
+
+            // XHR + نوار پیشرفت واقعی (به جای API.upload که fetch است)
+            await uploadFormWithProgress(form, `${API.base}/blog/posts${id ? `/${id}` : ''}`, fd, {
+                method: id ? 'PUT' : 'POST',
+                maxSizeMB: 10,  // مطابق راهنمای فرم: «حداکثر ۱۰ مگابایت»
+                file: coverFile,
+            });
+        } else {
+            // حالت JSON معمولی (بدون فایل) — سازگار با گذشته
+            const payload = {
+                title: form.querySelector('[name="title"]').value.trim(),
+                slug: form.querySelector('[name="slug"]').value.trim(),
+                category: form.querySelector('[name="category"]').value,
+                cover_image: coverUrl || null,
+                excerpt: form.querySelector('[name="excerpt"]').value.trim(),
+                content: input.value,
+                meta_description: form.querySelector('[name="meta_description"]').value.trim(),
+                is_published: published ? 1 : 0,
+            };
+            if (id) await API.put(`/blog/posts/${id}`, payload);
+            else    await API.post('/blog/posts', payload);
+        }
+
         if (typeof window.navigateTo === 'function') window.navigateTo('blog');
-        showAlert(isEdit ? 'پست به‌روزرسانی شد' : 'پست جدید اضافه شد', 'success');
-    }, 'در حال ذخیره...')
-        .catch(err => showAlert(err.message, 'error'))
-        .finally(() => {
-            if (wrap) wrap.hidden = true;
-            if (fill) fill.style.width = '0%';
-            if (label) label.textContent = '0%';
-        });
+        showAlert(id ? 'پست به‌روزرسانی شد' : 'پست جدید اضافه شد', 'success');
+    }, 'در حال ذخیره...').catch(error => showAlert(error.message, 'error'));
 }
 
 export async function deleteBlogPost(id, button) {

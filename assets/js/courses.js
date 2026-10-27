@@ -4,6 +4,7 @@
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { uploadFormWithProgress } from './upload-progress.js';
 
 const ICON_MAP = {
     'fa-book': 'book',
@@ -44,6 +45,24 @@ function buildCourseFormData(form) {
     const file = form.querySelector('[name="image"]')?.files?.[0];
     if (file) fd.append('background_image', file);
     return fd;
+}
+
+function hasImageFile(form) {
+    return !!form.querySelector('[name="image"]')?.files?.[0];
+}
+
+/**
+ * آپلود دوره: اگر فایلی انتخاب شده باشد از XHR + نوار پیشرفت استفاده می‌کنیم،
+ * در غیر این صورت همان مسیر قبلی (fetch) کافی است.
+ */
+async function submitCourse(form, id) {
+    const fd = buildCourseFormData(form);
+    const path = id ? `/courses/${id}` : '/courses';
+
+    if (hasImageFile(form)) {
+        return uploadFormWithProgress(form, `${API.base}${path}`, fd, { method: id ? 'PUT' : 'POST' });
+    }
+    return API.upload(path, fd, id ? 'PUT' : undefined);
 }
 
 export async function loadCourses() {
@@ -109,12 +128,13 @@ function renderCoursesTable(courses) {
 
 export async function handleAddCourse(e) {
     e.preventDefault();
-    const submitBtn = getFormSubmitButton(e.target);
+    const form = e.target;
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload('/courses', buildCourseFormData(e.target));
+        await submitCourse(form, null);
         hideModal('addCourseModal');
-        e.target.reset();
+        form.reset();
         loadCourses();
         showAlert('دوره اضافه شد', 'success');
     }, 'در حال افزودن...')
@@ -144,6 +164,10 @@ export async function editCourse(id) {
             display_order: course.display_order || 0
         });
 
+        // فایل انتخاب‌شده از دفعه قبل را پاک کن تا نوار پیشرفت دوباره ساخته شود
+        const fileInput = form.querySelector('[name="image"]');
+        if (fileInput) fileInput.value = '';
+
         showModal('editCourseModal');
     } catch (error) {
         console.error('Error in editCourse:', error);
@@ -158,7 +182,7 @@ export async function handleEditCourse(e) {
     const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload(`/courses/${id}`, buildCourseFormData(form), 'PUT');
+        await submitCourse(form, id);
         hideModal('editCourseModal');
         form.reset();
         loadCourses();

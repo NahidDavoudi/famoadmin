@@ -6,6 +6,7 @@
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
 import { renderImageWithFallback } from './image.js';
+import { uploadFormWithProgress } from './upload-progress.js';
 
 export async function loadInstructors() {
     const skeleton = document.getElementById('instructorsSkeleton');
@@ -100,15 +101,36 @@ function getInstructorFormData(form) {
     return formData;
 }
 
+/**
+ * ارسال فرم استاد.
+ * اگر فایلی انتخاب شده باشد → XHR + نوار پیشرفت واقعی.
+ * اگر نه (مثلاً ویرایش بدون تغییر تصویر) → همان مسیر fetch قبلی.
+ */
+async function submitInstructor(form, id) {
+    const path = id ? `/instructors/${id}` : '/instructors';
+    const formData = getInstructorFormData(form);
+    const file = form.querySelector('input[type="file"]')?.files?.[0] || null;
+
+    if (file) {
+        return uploadFormWithProgress(form, `${API.base}${path}`, formData, {
+            method: id ? 'PUT' : 'POST',
+            maxSizeMB: 5,   // مطابق راهنمای فرم: «حداکثر: 5MB»
+            file,
+        });
+    }
+    return API.upload(path, formData, id ? 'PUT' : undefined);
+}
+
 export async function handleAddInstructor(e) {
     e.preventDefault();
-    const submitBtn = getFormSubmitButton(e.target);
+    const form = e.target;
+    const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload('/instructors', getInstructorFormData(e.target));
+        await submitInstructor(form, null);
         hideModal('addInstructorModal');
-        e.target.reset();
-        const preview = e.target.querySelector('[data-avatar-preview]');
+        form.reset();
+        const preview = form.querySelector('[data-avatar-preview]');
         if (preview) preview.innerHTML = '';
         loadInstructors();
         showAlert('استاد اضافه شد', 'success');
@@ -137,6 +159,10 @@ export async function editInstructor(id) {
             description: instructor.description || '',
             display_order: instructor.display_order || 0
         });
+
+        // فایل انتخاب‌شده از دفعه‌ی قبل را پاک کن (در غیر این صورت بی‌خبر دوباره آپلود می‌شود)
+        const fileInput = form.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
 
         // نمایش تصویر فعلی در فرم ویرایش
         const previewEl = form.querySelector('[data-avatar-preview]');
@@ -172,7 +198,7 @@ export async function handleEditInstructor(e) {
     const submitBtn = getFormSubmitButton(form);
 
     await withButtonLoading(submitBtn, async () => {
-        await API.upload(`/instructors/${id}`, getInstructorFormData(form), 'PUT');
+        await submitInstructor(form, id);
         hideModal('editInstructorModal');
         form.reset();
         const preview = form.querySelector('[data-avatar-preview]');
