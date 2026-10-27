@@ -1,9 +1,11 @@
 /**
  * Admin Panel - Supporters CRUD (unified API)
+ * مدیریت پشتیبان‌ها + آپلود آواتار
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement, getFormSubmitButton } from './utils.js';
+import { renderImageWithFallback } from './image.js';
 
 export async function loadSupporters() {
     const skeleton = document.getElementById('supportersSkeleton');
@@ -51,13 +53,24 @@ function renderSupportersTable(supporters) {
     if (tableWrap) tableWrap.style.display = '';
     if (emptyState) emptyState.classList.add('hidden');
 
-    tbody.innerHTML = supporters.map(s => `
+    tbody.innerHTML = supporters.map(s => {
+        // آواتار با fallback امن — به جای حرف اول نام
+        const avatarCell = `
+            <div class="relative w-10 h-10 rounded-full overflow-hidden bg-[#E2D9C6]">
+                ${renderImageWithFallback({
+                    src: s.avatar_url || '',
+                    alt: s.name || '',
+                    imgClass: 'w-full h-full object-cover',
+                    iconSize: 'w-5 h-5',
+                })}
+            </div>
+        `;
+
+        return `
         <tr class="hover:bg-gray-50">
             <td class="px-5 py-4 font-medium">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-[#E2D9C6] flex items-center justify-center text-[#445D84] font-bold text-sm">
-                        ${escapeHtml((s.name || '?').charAt(0))}
-                    </div>
+                    ${avatarCell}
                     ${escapeHtml(s.name)}
                 </div>
             </td>
@@ -85,7 +98,28 @@ function renderSupportersTable(supporters) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
+}
+
+/**
+ * ساخت FormData از فرم پشتیبان — شامل فایل آواتار.
+ * Builds multipart/form-data payload including the avatar file.
+ */
+function buildSupporterFormData(form) {
+    const fd = new FormData();
+    fd.append('name', form.querySelector('[name="name"]')?.value.trim() ?? '');
+    fd.append('grade', form.querySelector('[name="grade"]')?.value ?? '');
+    fd.append('field', form.querySelector('[name="field"]')?.value ?? '');
+    fd.append('phone', form.querySelector('[name="phone"]')?.value.trim() ?? '');
+    fd.append('chat_id', form.querySelector('[name="chat_id"]')?.value.trim() ?? '');
+
+    const avatarInput = form.querySelector('input[type="file"][name="avatar"]');
+    const avatarFile = avatarInput?.files?.[0];
+    if (avatarFile) {
+        fd.append('avatar', avatarFile);
+    }
+
+    return fd;
 }
 
 export async function handleAddSupporter(e) {
@@ -93,16 +127,25 @@ export async function handleAddSupporter(e) {
     const form = e.target;
     const submitBtn = getFormSubmitButton(form);
 
+    // اعتبارسنجی حداقلی سمت کلاینت (سرویس هم چک می‌کند)
+    const name = form.querySelector('[name="name"]').value.trim();
+    const phone = form.querySelector('[name="phone"]')?.value.trim() || '';
+    if (!name) {
+        showAlert('نام و نام خانوادگی الزامی است', 'error');
+        return;
+    }
+    if (!phone) {
+        showAlert('شماره تلفن الزامی است', 'error');
+        return;
+    }
+
     await withButtonLoading(submitBtn, async () => {
-        await API.post('/supporters', {
-            name: form.querySelector('[name="name"]').value.trim(),
-            grade: Number(form.querySelector('[name="grade"]').value),
-            field: form.querySelector('[name="field"]').value,
-            phone: form.querySelector('[name="phone"]')?.value.trim() || '',
-            chat_id: form.querySelector('[name="chat_id"]')?.value.trim() || null,
-        });
+        await API.upload('/supporters', buildSupporterFormData(form));
         hideModal('addSupporterModal');
         form.reset();
+        // پاک‌سازی پیش‌نمایش آواتار در صورت وجود
+        const preview = form.querySelector('[data-avatar-preview]');
+        if (preview) preview.innerHTML = '';
         loadSupporters();
         showAlert('پشتیبان جدید اضافه شد', 'success');
     }, 'در حال افزودن...')
@@ -114,6 +157,16 @@ export function editSupporter(id, name, grade, field, chat_id) {
     if (!form) return;
 
     setFormValues(form, { id, name, grade, field, chat_id });
+
+    // نمایش آواتار فعلی در فرم ویرایش (در صورت وجود)
+    // id در name="id" قرار دارد، می‌توان آواتار را از رکورد فعلی گرفت
+    const previewEl = form.querySelector('[data-avatar-preview]');
+    if (previewEl) {
+        // ابتدا خالی کن؛ API فعلی به‌جز زمان load لیست، avatar_url ارائه نمی‌دهد.
+        // اگر در آینده GET /supporters/{id} را با avatar_url بازگرداند، می‌توان در اینجا آن را نمایش داد.
+        previewEl.innerHTML = '';
+    }
+
     showModal('editSupporterModal');
 }
 
@@ -123,18 +176,12 @@ export async function handleEditSupporter(e) {
     const id = form.querySelector('[name="id"]').value;
     const submitBtn = getFormSubmitButton(form);
 
-    const payload = {
-        name: form.querySelector('[name="name"]').value.trim(),
-        grade: Number(form.querySelector('[name="grade"]').value),
-        field: form.querySelector('[name="field"]').value,
-        chat_id: form.querySelector('[name="chat_id"]')?.value.trim() || null,
-    };
-    const newPassword = form.querySelector('[name="new_password"]')?.value;
-    if (newPassword) payload.password = newPassword;
-
     await withButtonLoading(submitBtn, async () => {
-        await API.put(`/supporters/${id}`, payload);
+        await API.upload(`/supporters/${id}`, buildSupporterFormData(form), 'PUT');
         hideModal('editSupporterModal');
+        form.reset();
+        const preview = form.querySelector('[data-avatar-preview]');
+        if (preview) preview.innerHTML = '';
         loadSupporters();
         showAlert('تغییرات ذخیره شد', 'success');
     }, 'در حال ذخیره...')
@@ -152,4 +199,34 @@ export async function deleteSupporter(id, button) {
         showAlert('پشتیبان حذف شد', 'success');
     }, 'در حال حذف...')
         .catch(error => showAlert(error.message, 'error'));
+}
+
+/**
+ * پیش‌نمایش آواتار انتخاب‌شده قبل از ذخیره.
+ * Live preview of the selected avatar before saving.
+ * در فرم HTML باید یک عنصر با data-avatar-preview قرار دهید.
+ */
+export function bindAvatarPreview(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const input = form.querySelector('input[type="file"][name="avatar"]');
+    const preview = form.querySelector('[data-avatar-preview]');
+    if (!input || !preview) return;
+
+    if (input.dataset.bound === '1') return;
+    input.dataset.bound = '1';
+
+    input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (!file) {
+            preview.innerHTML = '';
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `
+            <div class="relative w-16 h-16 rounded-full overflow-hidden bg-[#E2D9C6]">
+                <img src="${url}" alt="preview" class="w-full h-full object-cover">
+            </div>
+        `;
+    });
 }

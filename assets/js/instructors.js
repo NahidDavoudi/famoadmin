@@ -1,9 +1,11 @@
 /**
  * Admin Panel - Instructors CRUD (unified API)
+ * مدیریت اساتید + نمایش آواتار (به جای حرف اول نام)
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
 import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { renderImageWithFallback } from './image.js';
 
 export async function loadInstructors() {
     const skeleton = document.getElementById('instructorsSkeleton');
@@ -42,16 +44,28 @@ function renderInstructorsTable(instructors) {
     if (tableWrap) tableWrap.style.display = '';
     if (emptyState) emptyState.classList.add('hidden');
 
-    tbody.innerHTML = instructors.map(i => `
+    tbody.innerHTML = instructors.map(i => {
+        // آواتار با fallback امن — جایگزین حرف اول نام
+        // فرض می‌کنیم بک‌اند avatar_url یا image_url را برمی‌گرداند.
+        // اگر نام فیلد در بک‌اند image است، image_url در نظر گرفته می‌شود.
+        const avatarUrl = i.avatar_url || i.image_url || '';
+        const avatarCell = `
+            <div class="relative w-11 h-11 rounded-full overflow-hidden bg-gradient-to-br from-[#E2D9C6] to-[#d4c9b2]">
+                ${renderImageWithFallback({
+                    src: avatarUrl,
+                    alt: i.name || '',
+                    imgClass: 'w-full h-full object-cover',
+                    iconSize: 'w-5 h-5',
+                })}
+            </div>
+        `;
+
+        return `
         <tr class="hover:bg-gray-50">
             <td class="px-5 py-4">${i.display_order}</td>
             <td class="px-5 py-4 font-medium">${escapeHtml(i.name)}</td>
             <td class="px-5 py-4">${escapeHtml(i.title || '')}</td>
-            <td class="px-5 py-4">
-                <div class="w-11 h-11 rounded-full bg-gradient-to-br from-[#E2D9C6] to-[#d4c9b2] flex items-center justify-center text-[#445D84] font-bold text-sm">
-                    ${escapeHtml(i.initial_letter || i.name?.charAt(0) || '?')}
-                </div>
-            </td>
+            <td class="px-5 py-4">${avatarCell}</td>
             <td class="px-5 py-4">
                 <div class="flex items-center gap-1">
                     <button onclick="window.editInstructor(${i.id})" class="p-2 rounded-lg text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="ویرایش">
@@ -63,19 +77,26 @@ function renderInstructorsTable(instructors) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
+/**
+ * ساخت FormData از فرم استاد — شامل فایل تصویر.
+ * فیلد image به‌عنوان کلید فایل در سمت بک‌اند استفاده می‌شود.
+ * Builds multipart/form-data payload including the image file.
+ */
 function getInstructorFormData(form) {
     const formData = new FormData(form);
     const imageInput = form.querySelector('input[type="file"]');
     const imageFile = imageInput?.files[0];
 
+    // حذف فیلد image از formData تا دوباره با کلید درست اضافه شود
     formData.delete('image');
     if (imageFile) {
         formData.append('image', imageFile);
     }
 
+    // حذف initial_letter دیگر لازم نیست؛ فیلد از فرم حذف شده است.
     return formData;
 }
 
@@ -87,6 +108,8 @@ export async function handleAddInstructor(e) {
         await API.upload('/instructors', getInstructorFormData(e.target));
         hideModal('addInstructorModal');
         e.target.reset();
+        const preview = e.target.querySelector('[data-avatar-preview]');
+        if (preview) preview.innerHTML = '';
         loadInstructors();
         showAlert('استاد اضافه شد', 'success');
     }, 'در حال افزودن...')
@@ -106,14 +129,34 @@ export async function editInstructor(id) {
         const form = document.getElementById('editInstructorForm');
         if (!form) return;
 
+        // initial_letter حذف شده — فقط فیلدهای باقی‌مانده set می‌شوند
         setFormValues(form, {
             id: instructor.id,
             name: instructor.name || '',
             title: instructor.title || '',
             description: instructor.description || '',
-            initial_letter: instructor.initial_letter || '',
             display_order: instructor.display_order || 0
         });
+
+        // نمایش تصویر فعلی در فرم ویرایش
+        const previewEl = form.querySelector('[data-avatar-preview]');
+        if (previewEl) {
+            const avatarUrl = instructor.avatar_url || instructor.image_url || '';
+            if (avatarUrl) {
+                previewEl.innerHTML = `
+                    <div class="relative w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#E2D9C6] to-[#d4c9b2]">
+                        ${renderImageWithFallback({
+                            src: avatarUrl,
+                            alt: instructor.name || '',
+                            imgClass: 'w-full h-full object-cover',
+                            iconSize: 'w-6 h-6',
+                        })}
+                    </div>
+                `;
+            } else {
+                previewEl.innerHTML = '';
+            }
+        }
 
         showModal('editInstructorModal');
     } catch (error) {
@@ -132,6 +175,8 @@ export async function handleEditInstructor(e) {
         await API.upload(`/instructors/${id}`, getInstructorFormData(form), 'PUT');
         hideModal('editInstructorModal');
         form.reset();
+        const preview = form.querySelector('[data-avatar-preview]');
+        if (preview) preview.innerHTML = '';
         loadInstructors();
         showAlert('استاد به‌روزرسانی شد', 'success');
     }, 'در حال ذخیره...')
@@ -152,4 +197,33 @@ export async function deleteInstructor(id, name, button) {
         showAlert('استاد حذف شد', 'success');
     }, 'در حال حذف...')
         .catch(error => showAlert(error.message, 'error'));
+}
+
+/**
+ * پیش‌نمایش آواتار انتخاب‌شده قبل از ذخیره.
+ * Live preview of the selected image before saving.
+ */
+export function bindInstructorAvatarPreview(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    const input = form.querySelector('input[type="file"]');
+    const preview = form.querySelector('[data-avatar-preview]');
+    if (!input || !preview) return;
+
+    if (input.dataset.bound === '1') return;
+    input.dataset.bound = '1';
+
+    input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (!file) {
+            preview.innerHTML = '';
+            return;
+        }
+        const url = URL.createObjectURL(file);
+        preview.innerHTML = `
+            <div class="relative w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#E2D9C6] to-[#d4c9b2]">
+                <img src="${url}" alt="preview" class="w-full h-full object-cover">
+            </div>
+        `;
+    });
 }
