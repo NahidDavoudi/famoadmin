@@ -1080,6 +1080,14 @@
         </div>
 
         <div id="blogCoverPreview" class="mt-2"></div>
+        <div id="blogUploadProgress" hidden class="mt-3">
+    <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div id="blogUploadProgressFill"
+             class="h-full bg-primary rounded-full transition-all duration-150"
+             style="width:0%"></div>
+    </div>
+    <p id="blogUploadProgressText" class="text-xs text-gray-500 mt-1 text-center">0%</p>
+</div>
     </div>
 </div>
 
@@ -1344,7 +1352,7 @@
             </div>
 
             <div class="modal-body">
-                <form id="addSupporterForm" class="modal-form">
+                <form id="addSupporterForm" class="modal-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label>نام و نام خانوادگی</label>
                         <input type="text" name="name" required>
@@ -1381,6 +1389,19 @@
                     <div class="form-group">
                         <label>شناسه تلگرام (اختیاری)</label>
                         <input type="text" name="chat_id" placeholder="123456789">
+                    </div>
+                    <div class="form-group">
+                        <label>آواتار (اختیاری)</label>
+                        <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                               class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl modern-input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:cursor-pointer">
+                        <p class="text-xs text-gray-500">JPG, PNG, WEBP | حداکثر 10MB</p>
+                        <div id="addSupporterPreview" class="mt-2"></div>
+                    </div>
+                    <div id="addSupporterProgress" hidden class="mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div id="addSupporterProgressFill" class="h-full bg-primary rounded-full transition-all duration-150" style="width:0%"></div>
+                        </div>
+                        <p id="addSupporterProgressText" class="text-xs text-gray-500 mt-1 text-center">0%</p>
                     </div>
                     <div class="form-group">
                         <label>نام کاربری</label>
@@ -1439,7 +1460,7 @@
             </div>
 
             <div class="modal-body">
-                <form id="editSupporterForm" class="modal-form">
+                <form id="editSupporterForm" class="modal-form" enctype="multipart/form-data">
                     <input type="hidden" name="id">
                     <div class="form-group">
                         <label>نام و نام خانوادگی</label>
@@ -1472,6 +1493,18 @@
                     <div class="form-group">
                         <label>شناسه تلگرام</label>
                         <input type="text" name="chat_id">
+                    </div>
+                    <div class="form-group">
+                        <label>آواتار جدید (اختیاری — خالی = بدون تغییر)</label>
+                        <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                               class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl modern-input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:cursor-pointer">
+                        <div id="editSupporterPreview" class="mt-2"></div>
+                    </div>
+                    <div id="editSupporterProgress" hidden class="mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div id="editSupporterProgressFill" class="h-full bg-primary rounded-full transition-all duration-150" style="width:0%"></div>
+                        </div>
+                        <p id="editSupporterProgressText" class="text-xs text-gray-500 mt-1 text-center">0%</p>
                     </div>
                     <div class="form-group">
                         <label>رمز عبور جدید (خالی = بدون تغییر)</label>

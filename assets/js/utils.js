@@ -130,3 +130,52 @@ export async function withButtonLoading(button, operation, loadingText = 'در �
         cleanup();
     }
 }
+
+// upload.js
+/**
+ * آپلود فایل با progress event (fetch پشتیبانی نمی‌کند → XHR).
+ * @param {string} url           آدرس کامل endpoint (API.base + path)
+ * @param {FormData} formData
+ * @param {Object} [opts]
+ * @param {'POST'|'PUT'|'PATCH'} [opts.method='POST']
+ * @param {(pct:number, phase:'uploading'|'processing') => void} [opts.onProgress]
+ * @param {AbortSignal} [opts.signal]
+ * @returns {Promise<{status:number, body:any}>}
+ */
+export function uploadWithProgress(url, formData, { method = 'POST', onProgress, signal } = {}) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        // کوکی‌های احراز هویت (famo_jwt) ارسال شوند
+        xhr.withCredentials = true;
+        // ⚠️ Content-Type را دستی set نکنید؛ مرورگر boundary را می‌سازد
+        xhr.setRequestHeader('Accept', 'application/json');
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                onProgress?.(Math.round((e.loaded / e.total) * 100), 'uploading');
+            }
+        };
+        // ۱۰۰٪ ارسال ≠ پایان کار؛ سرور دارد پردازش می‌کند
+        xhr.upload.onload = () => onProgress?.(100, 'processing');
+
+        xhr.onload = () => {
+            let body = null;
+            try { body = JSON.parse(xhr.responseText); } catch { body = xhr.responseText; }
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve({ status: xhr.status, body });
+            } else {
+                const message = body?.error?.message || `HTTP ${xhr.status}`;
+                const err = new Error(message);
+                err.status = xhr.status;
+                err.code = body?.error?.code;
+                reject(err);
+            }
+        };
+        xhr.onerror = () => reject(new Error('خطای شبکه در آپلود'));
+        xhr.onabort = () => reject(new DOMException('آپلود لغو شد', 'AbortError'));
+        signal?.addEventListener('abort', () => xhr.abort());
+
+        xhr.send(formData);
+    });
+}

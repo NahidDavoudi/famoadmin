@@ -1,10 +1,14 @@
 /**
  * Admin Panel - Supporters CRUD (unified API)
- * مدیریت پشتیبان‌ها + آپلود آواتار
+ * مدیریت پشتیبان‌ها + آپلود آواتار با progress
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement, getFormSubmitButton } from './utils.js';
+import {
+    showAlert, showModal, hideModal, escapeHtml, setFormValues,
+    icon, withButtonLoading, updateStatElement, getFormSubmitButton,
+    uploadWithProgress,
+} from './utils.js';
 import { renderImageWithFallback } from './image.js';
 
 export async function loadSupporters() {
@@ -54,7 +58,6 @@ function renderSupportersTable(supporters) {
     if (emptyState) emptyState.classList.add('hidden');
 
     tbody.innerHTML = supporters.map(s => {
-        // آواتار با fallback امن — به جای حرف اول نام
         const avatarCell = `
             <div class="relative w-10 h-10 rounded-full overflow-hidden bg-[#E2D9C6]">
                 ${renderImageWithFallback({
@@ -103,7 +106,6 @@ function renderSupportersTable(supporters) {
 
 /**
  * ساخت FormData از فرم پشتیبان — شامل فایل آواتار.
- * Builds multipart/form-data payload including the avatar file.
  */
 function buildSupporterFormData(form) {
     const fd = new FormData();
@@ -113,43 +115,98 @@ function buildSupporterFormData(form) {
     fd.append('phone', form.querySelector('[name="phone"]')?.value.trim() ?? '');
     fd.append('chat_id', form.querySelector('[name="chat_id"]')?.value.trim() ?? '');
 
-    const avatarInput = form.querySelector('input[type="file"][name="avatar"]');
-    const avatarFile = avatarInput?.files?.[0];
-    if (avatarFile) {
-        fd.append('avatar', avatarFile);
-    }
+    // نام کاربری/رمز فقط در مودال افزودن موجود است
+    const username = form.querySelector('[name="username"]')?.value.trim();
+    if (username) fd.append('username', username);
+    const password = form.querySelector('[name="password"]')?.value;
+    if (password) fd.append('password', password);
+
+    // در ویرایش، رمز جدید در فیلد new_password است
+    const newPassword = form.querySelector('[name="new_password"]')?.value;
+    if (newPassword) fd.append('password', newPassword);
+
+    const avatarFile = form.querySelector('input[type="file"][name="avatar"]')?.files?.[0];
+    if (avatarFile) fd.append('avatar', avatarFile);
 
     return fd;
+}
+
+/**
+ * اجرای آپلود (XHR) + progress + loading روی دکمه.
+ * @param {HTMLFormElement} form
+ * @param {Object} opts
+ * @param {'POST'|'PUT'} opts.method
+ * @param {string} opts.endpoint
+ * @param {{wrap:string,fill:string,text:string}} opts.progressIds
+ * @param {Function} opts.onSuccess
+ */
+async function submitSupporter({ form, method, endpoint, progressIds, onSuccess }) {
+    const submitBtn = getFormSubmitButton(form);
+    const fd = buildSupporterFormData(form);
+    const hasFile = fd.has('avatar');
+
+    const wrap  = document.getElementById(progressIds.wrap);
+    const fill  = document.getElementById(progressIds.fill);
+    const label = document.getElementById(progressIds.text);
+
+    // اگر فایلی نیست، از API.upload استفاده کن (ساده‌تر، با eror handling یکسان)
+    if (!hasFile) {
+        await withButtonLoading(submitBtn, async () => {
+            await API.upload(endpoint, fd, method);
+            onSuccess();
+        }, method === 'PUT' ? 'در حال ذخیره...' : 'در حال افزودن...')
+            .catch(err => showAlert(err.message, 'error'));
+        return;
+    }
+
+    // با فایل: XHR برای progress
+    if (wrap) wrap.hidden = false;
+
+    await withButtonLoading(submitBtn, async () => {
+        await uploadWithProgress(`${API.base}${endpoint}`, fd, {
+            method,
+            onProgress: (pct, phase) => {
+                if (fill) fill.style.width = pct + '%';
+                if (label) label.textContent = phase === 'processing' ? 'در حال پردازش...' : pct + '%';
+            },
+        });
+        onSuccess();
+    }, method === 'PUT' ? 'در حال ذخیره...' : 'در حال افزودن...')
+        .catch(err => showAlert(err.message, 'error'))
+        .finally(() => {
+            if (wrap) wrap.hidden = true;
+            if (fill) fill.style.width = '0%';
+            if (label) label.textContent = '0%';
+        });
 }
 
 export async function handleAddSupporter(e) {
     e.preventDefault();
     const form = e.target;
-    const submitBtn = getFormSubmitButton(form);
 
-    // اعتبارسنجی حداقلی سمت کلاینت (سرویس هم چک می‌کند)
     const name = form.querySelector('[name="name"]').value.trim();
     const phone = form.querySelector('[name="phone"]')?.value.trim() || '';
-    if (!name) {
-        showAlert('نام و نام خانوادگی الزامی است', 'error');
-        return;
-    }
-    if (!phone) {
-        showAlert('شماره تلفن الزامی است', 'error');
-        return;
-    }
+    if (!name) { showAlert('نام و نام خانوادگی الزامی است', 'error'); return; }
+    if (!phone) { showAlert('شماره تلفن الزامی است', 'error'); return; }
 
-    await withButtonLoading(submitBtn, async () => {
-        await API.upload('/supporters', buildSupporterFormData(form));
-        hideModal('addSupporterModal');
-        form.reset();
-        // پاک‌سازی پیش‌نمایش آواتار در صورت وجود
-        const preview = form.querySelector('[data-avatar-preview]');
-        if (preview) preview.innerHTML = '';
-        loadSupporters();
-        showAlert('پشتیبان جدید اضافه شد', 'success');
-    }, 'در حال افزودن...')
-        .catch(error => showAlert(error.message, 'error'));
+    await submitSupporter({
+        form,
+        method: 'POST',
+        endpoint: '/supporters',
+        progressIds: {
+            wrap: 'addSupporterProgress',
+            fill: 'addSupporterProgressFill',
+            text: 'addSupporterProgressText',
+        },
+        onSuccess: () => {
+            hideModal('addSupporterModal');
+            form.reset();
+            const preview = document.getElementById('addSupporterPreview');
+            if (preview) preview.innerHTML = '';
+            loadSupporters();
+            showAlert('پشتیبان جدید اضافه شد', 'success');
+        },
+    });
 }
 
 export function editSupporter(id, name, grade, field, chat_id) {
@@ -158,14 +215,9 @@ export function editSupporter(id, name, grade, field, chat_id) {
 
     setFormValues(form, { id, name, grade, field, chat_id });
 
-    // نمایش آواتار فعلی در فرم ویرایش (در صورت وجود)
-    // id در name="id" قرار دارد، می‌توان آواتار را از رکورد فعلی گرفت
-    const previewEl = form.querySelector('[data-avatar-preview]');
-    if (previewEl) {
-        // ابتدا خالی کن؛ API فعلی به‌جز زمان load لیست، avatar_url ارائه نمی‌دهد.
-        // اگر در آینده GET /supporters/{id} را با avatar_url بازگرداند، می‌توان در اینجا آن را نمایش داد.
-        previewEl.innerHTML = '';
-    }
+    // پیش‌نمایش خالی — آواتار جدید بعد از انتخاب فایل نشان داده می‌شود
+    const preview = document.getElementById('editSupporterPreview');
+    if (preview) preview.innerHTML = '';
 
     showModal('editSupporterModal');
 }
@@ -174,18 +226,25 @@ export async function handleEditSupporter(e) {
     e.preventDefault();
     const form = e.target;
     const id = form.querySelector('[name="id"]').value;
-    const submitBtn = getFormSubmitButton(form);
 
-    await withButtonLoading(submitBtn, async () => {
-        await API.upload(`/supporters/${id}`, buildSupporterFormData(form), 'PUT');
-        hideModal('editSupporterModal');
-        form.reset();
-        const preview = form.querySelector('[data-avatar-preview]');
-        if (preview) preview.innerHTML = '';
-        loadSupporters();
-        showAlert('تغییرات ذخیره شد', 'success');
-    }, 'در حال ذخیره...')
-        .catch(error => showAlert(error.message, 'error'));
+    await submitSupporter({
+        form,
+        method: 'PUT',
+        endpoint: `/supporters/${id}`,
+        progressIds: {
+            wrap: 'editSupporterProgress',
+            fill: 'editSupporterProgressFill',
+            text: 'editSupporterProgressText',
+        },
+        onSuccess: () => {
+            hideModal('editSupporterModal');
+            form.reset();
+            const preview = document.getElementById('editSupporterPreview');
+            if (preview) preview.innerHTML = '';
+            loadSupporters();
+            showAlert('تغییرات ذخیره شد', 'success');
+        },
+    });
 }
 
 export async function deleteSupporter(id, button) {
@@ -203,14 +262,12 @@ export async function deleteSupporter(id, button) {
 
 /**
  * پیش‌نمایش آواتار انتخاب‌شده قبل از ذخیره.
- * Live preview of the selected avatar before saving.
- * در فرم HTML باید یک عنصر با data-avatar-preview قرار دهید.
  */
-export function bindAvatarPreview(formId) {
+export function bindAvatarPreview(formId, previewId) {
     const form = document.getElementById(formId);
     if (!form) return;
     const input = form.querySelector('input[type="file"][name="avatar"]');
-    const preview = form.querySelector('[data-avatar-preview]');
+    const preview = document.getElementById(previewId);
     if (!input || !preview) return;
 
     if (input.dataset.bound === '1') return;
@@ -218,10 +275,7 @@ export function bindAvatarPreview(formId) {
 
     input.addEventListener('change', () => {
         const file = input.files?.[0];
-        if (!file) {
-            preview.innerHTML = '';
-            return;
-        }
+        if (!file) { preview.innerHTML = ''; return; }
         const url = URL.createObjectURL(file);
         preview.innerHTML = `
             <div class="relative w-16 h-16 rounded-full overflow-hidden bg-[#E2D9C6]">

@@ -18,6 +18,7 @@ import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry
 import { handleBlogSubmit } from './blog.js';
 import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates, initDatePickers } from './ui.js';
 import { getTodayJalali, getJalaliMonths } from './jalali.js';
+import { bindAvatarPreview } from './supporters.js';
 
 const forms = {
     addStudentForm: handleAddStudent,
@@ -200,4 +201,7 @@ export function init() {
     addNoSpinnerStyles();
     initMobileMenu();
     setupTableResponsive();
+    bindAvatarPreview('addSupporterForm', 'addSupporterPreview');
+    bindAvatarPreview('editSupporterForm', 'editSupporterPreview');
+
 }
