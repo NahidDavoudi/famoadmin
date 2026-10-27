@@ -16,6 +16,10 @@
     <script src="<?= famo_asset('js/libs/apexcharts.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/libs/lucide.min.js', '') ?>"></script>
     <script src="<?= famo_asset('js/lucide-adapter.js', '') ?>"></script>
+    <!-- Favicon Multi-size -->
+    <link rel="icon" type="image/png" sizes="16x16" href="<?php echo famo_asset('images/favicon-16.png', $base . '../shared/images/favicon-16.png'); ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?php echo famo_asset('images/favicon-32.png', $base . '../shared/images/favicon-32.png'); ?>">
+    <link rel="icon" type="image/png" sizes="96x96" href="<?php echo famo_asset('images/favicon-96.png', $base . '../shared/images/favicon-96.png'); ?>">
     <link rel="stylesheet" href="assets/css/admin.css">
     <script type="module" src="assets/js/index.js?v=<?= @filemtime(__DIR__ . '/assets/js/index.js') ?: 2 ?>"></script>
 
