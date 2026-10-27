@@ -3,3 +3,4 @@ vendor/
 uploads/
 storage/logs/*.log
 .opencode/
+merged/
