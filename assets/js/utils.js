@@ -42,6 +42,33 @@ export function icon(name, className = 'icon') {
     return `<i data-lucide="${lucide}" class="${className}" aria-hidden="true"></i>`;
 }
 
+/**
+ * اسپینر با استایل تماماً inline.
+ *
+ * چرا inline؟ اسپینر قبلی فقط با کلاس‌های Tailwind ساخته می‌شد
+ * (`inline-block w-4 h-4 border-2 rounded-full animate-spin`). این کلاس‌ها فقط
+ * داخل رشته‌های JS وجود دارند و در index.php نیستند؛ اگر css/output.css یک build
+ * purge‌شده‌ی Tailwind باشد، کلاس `inline-block` در آن نیست → <span> به‌صورت
+ * display:inline می‌ماند، width/height نادیده گرفته می‌شود و **اسپینر نامرئی**
+ * می‌شود (دکمه انگار هیچ لودینگی ندارد). استایل inline این وابستگی را حذف می‌کند.
+ *
+ * @returns {string} HTML اسپینر
+ */
+export function spinnerHtml() {
+    return '<span aria-hidden="true" style="'
+        + 'display:inline-block;'
+        + 'width:16px;height:16px;'
+        + 'border:2px solid currentColor;'
+        + 'border-top-color:transparent;'
+        + 'border-radius:50%;'
+        + 'vertical-align:-3px;'
+        + 'animation:famo-spin .7s linear infinite;'
+        + '"></span>';
+}
+
+// برای عیب‌یابی از کنسول: window.__famoSpinner
+if (typeof window !== 'undefined') window.__famoSpinner = spinnerHtml();
+
 function resolveButton(button) {
     return typeof button === 'string' ? document.querySelector(button) : button;
 }
@@ -56,6 +83,16 @@ function restoreButton(btn) {
     }
     delete btn.dataset.loading;
     btn.removeAttribute('aria-busy');
+}
+
+
+// keyframes اسپینر — یک‌بار تزریق می‌شود تا به Tailwind (animate-spin) وابسته نباشیم
+if (typeof document !== 'undefined' && !document.getElementById('famo-spin-keyframes')) {
+    const style = document.createElement('style');
+    style.id = 'famo-spin-keyframes';
+    style.textContent = '@keyframes famo-spin{to{transform:rotate(360deg)}}'
+        + '@media (prefers-reduced-motion: reduce){[style*="famo-spin"]{animation-duration:2.4s}}';
+    document.head.appendChild(style);
 }
 
 /**
@@ -93,12 +130,14 @@ export function setButtonLoading(button, isLoading = true, loadingText = 'در �
 
         // Icon-only buttons get a spinner without any text
         const spinnerOnly = !btn.textContent.trim();
-        const spinner = '<span class="inline-block w-4 h-4 border-2 rounded-full animate-spin" style="border-color: currentColor; border-top-color: transparent;"></span>';
+        const spinner = spinnerHtml();
 
         // Set loading state
         btn.disabled = true;
         btn.setAttribute('aria-busy', 'true');
-        btn.innerHTML = (spinnerOnly || !loadingText) ? spinner : `${spinner}<span class="mr-2">${loadingText}</span>`;
+        btn.innerHTML = (spinnerOnly || !loadingText)
+            ? spinner
+            : `${spinner}<span style="margin-inline-start:8px">${loadingText}</span>`;
 
         // Return cleanup function
         return () => restoreButton(btn);

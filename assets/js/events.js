@@ -3,22 +3,22 @@
  */
 
 import * as config from './config.js';
-import { hideModal } from './utils.js';
+import { hideModal } from './utils.js?v=202610280033';
 import { installClickGuard } from './clickGuard.js';
 import { checkAuth, handleLogout } from './auth.js';
 import { navigateTo } from './nav.js';
 import { loadStudents } from './students.js';
 import { handleAddStudent, handleEditStudent } from './students.js';
 import { handleParentContactSubmit } from './parents.js';
-import { handleAddSupporter, handleEditSupporter } from './supporters.js';
-import { handleFileUpload } from './files.js';
-import { handleAddCourse, handleEditCourse } from './courses.js';
-import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=4';
-import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry.js';
-import { handleBlogSubmit } from './blog.js';
+import { handleAddSupporter, handleEditSupporter } from './supporters.js?v=202610280033';
+import { handleFileUpload } from './files.js?v=202610280033';
+import { handleAddCourse, handleEditCourse } from './courses.js?v=202610280033';
+import { handleAddInstructor, handleEditInstructor } from './instructors.js?v=202610280033';
+import { handleExamEntry, addSubjectRow, initExamDatePicker } from './exam-entry.js?v=202610280033';
+import { handleBlogSubmit } from './blog.js?v=202610280033';
 import { addNoSpinnerStyles, initMobileMenu, setupTableResponsive, setDefaultDates, initDatePickers } from './ui.js';
 import { getTodayJalali, getJalaliMonths } from './jalali.js';
-import { bindAvatarPreview } from './supporters.js';
+import { bindAvatarPreview } from './supporters.js?v=202610280033';
 
 const forms = {
     addStudentForm: handleAddStudent,

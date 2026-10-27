@@ -4,7 +4,8 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert } from './utils.js';
+import { showAlert, showConfirm, spinnerHtml } from './utils.js?v=202610280033';
+import { applySubjectsForStudent, setNotice } from './exam-subjects.js?v=202610280033';
 import { loadStudentList } from './ui.js';
 import * as config from './config.js';
 import { formatGregorianToJalali } from './jalali.js';
@@ -12,6 +13,39 @@ import { createJalaliPicker } from './jalali-picker.js';
 
 // Jalali date picker controller (module-level)
 let examDatePicker = null;
+
+// آخرین لیست دانش‌آموزان دریافت‌شده — برای ساخت دروس بعد از ریست فرم
+let cachedStudents = [];
+
+/** پیدا کردن دانش‌آموز بر اساس شناسه در کش */
+function findCachedStudent(id) {
+    if (id === null || id === undefined || id === '') return null;
+    return cachedStudents.find(s => String(s.id) === String(id)) || null;
+}
+
+// کش جزئیات دانش‌آموز — اگر /students/list فیلد «رشته» را برنگرداند
+const studentDetailsCache = new Map();
+
+/**
+ * اگر رکورد خلاصه‌ی لیست، رشته/پایه را نداشت، جزئیات کامل را می‌گیرد.
+ * (خطا بی‌صدا نادیده گرفته می‌شود؛ در این حالت فقط دروس خودکار ساخته نمی‌شوند.)
+ */
+async function ensureStudentDetails(student) {
+    if (!student || student.field) return student;
+    const key = String(student.id);
+    if (studentDetailsCache.has(key)) return studentDetailsCache.get(key);
+
+    try {
+        const res = await API.get(`/students/${student.id}`);
+        const full = res?.data || null;
+        const merged = full ? { ...student, ...full } : student;
+        studentDetailsCache.set(key, merged);
+        return merged;
+    } catch (error) {
+        console.warn('دریافت جزئیات دانش‌آموز ناموفق بود؛ دروس خودکار ساخته نشد.', error);
+        return student;
+    }
+}
 
 // ── Student Cache & Autocomplete ──
 const CACHE_KEY = 'students_list_cache';
@@ -108,7 +142,7 @@ function setupAutocomplete(inputId, studentsData) {
             li.dataset.studentName = student.name;
 
             li.addEventListener('click', () => {
-                selectStudent(student.id, student.name);
+                selectStudent(student);
             });
 
             li.addEventListener('mouseenter', () => {
@@ -127,11 +161,28 @@ function setupAutocomplete(inputId, studentsData) {
     }
 
     // Select a student
-    function selectStudent(studentId, studentName) {
+    function selectStudent(student) {
+        const studentId = student.id;
+        const studentName = student.name;
+
         input.value = studentName;
         hiddenInput.value = studentId;
         suggestionsList.classList.add('hidden');
         selectedIndex = -1;
+
+        // 🔹 ساخت خودکار ردیف‌های درس بر اساس رشته‌ی دانش‌آموز
+        //    (اگر کاربر نمره‌ای وارد کرده باشد، قبل از بازنویسی تأیید می‌گیرد)
+        applySubjectsForStudent(student);
+
+        // اگر لیست خلاصه رشته را نداشت، بعد از گرفتن جزئیات دوباره تلاش کن
+        if (!student.field) {
+            ensureStudentDetails(student).then((full) => {
+                const currentId = document.getElementById('examStudentId')?.value;
+                if (full?.field && String(currentId) === String(student.id)) {
+                    applySubjectsForStudent(full);
+                }
+            });
+        }
 
         // Trigger change event for validation
         hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -162,11 +213,9 @@ function setupAutocomplete(inputId, studentsData) {
                 updateSelection();
             } else if (e.key === 'Enter' && selectedIndex >= 0) {
                 e.preventDefault();
-                const selectedLi = suggestionsList.querySelectorAll('li')[selectedIndex];
-                if (selectedLi) {
-                    const studentId = selectedLi.dataset.studentId;
-                    const studentName = selectedLi.dataset.studentName;
-                    selectStudent(studentId, studentName);
+                const student = filteredStudents[selectedIndex];
+                if (student) {
+                    selectStudent(student);
                 }
             } else if (e.key === 'Escape') {
                 suggestionsList.classList.add('hidden');
@@ -185,6 +234,12 @@ function setupAutocomplete(inputId, studentsData) {
             }
         });
     }
+
+    // اگر شناسه‌ی دانش‌آموز از جای دیگری ست شد (مثلاً کد ثالث)، دروس هم ساخته شوند
+    hiddenInput.addEventListener('change', () => {
+        const student = findCachedStudent(hiddenInput.value);
+        if (student) applySubjectsForStudent(student);
+    });
 
     // Close suggestions when clicking outside
     document.addEventListener('click', (e) => {
@@ -210,6 +265,7 @@ export async function loadExamEntryPage() {
         if (inputElement) {
             try {
                 const students = await fetchStudentsWithCache();
+                cachedStudents = students;
                 setupAutocomplete('examStudentSelect', students);
             } catch (error) {
                 console.error('Error setting up autocomplete:', error);
@@ -258,7 +314,7 @@ export async function handleExamEntry(e) {
 
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span> در حال ثبت...';
+        submitBtn.innerHTML = `${spinnerHtml()}<span style="margin-inline-start:8px">در حال ثبت...</span>`;
     }
 
     config.setIsSubmitting(true);
@@ -327,6 +383,7 @@ export async function handleExamEntry(e) {
             const inputElement = document.getElementById('examStudentSelect');
             if (inputElement) {
                 fetchStudentsWithCache().then(students => {
+                    cachedStudents = students;
                     setupAutocomplete('examStudentSelect', students);
                 });
             }
@@ -399,7 +456,17 @@ export function resetExamForm() {
     const container = document.getElementById('subjectsContainer');
     if (container) {
         container.innerHTML = '';
-        addSubjectRow();
+        setNotice({});
+
+        // اگر دانش‌آموزی انتخاب شده باشد، دروس رشته‌ی او دوباره ساخته می‌شود
+        // (بعد از ثبت نتیجه، فرم برای آزمون بعدی همان دانش‌آموز آماده است)
+        const studentId = document.getElementById('examStudentId')?.value;
+        const student = findCachedStudent(studentId);
+        const result = student
+            ? applySubjectsForStudent(student, { silent: true })
+            : { applied: false };
+
+        if (!result.applied) addSubjectRow();
     }
 
     // Set Jalali date picker to today

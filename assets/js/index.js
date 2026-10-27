@@ -3,19 +3,19 @@
  * پنل مدیریت فامو - نقطه ورود ماژولار
  */
 
-import { init, setupEventListeners } from './events.js?v=4';
-import { showModal, hideModal } from './utils.js';
+import { init, setupEventListeners } from './events.js?v=202610280033';
+import { showModal, hideModal } from './utils.js?v=202610280033';
 import { loadStudents, editStudent, deleteStudent, createStudentAccount, resetStudentPassword, clearStudentFilters, toggleStudentStatus, toggleStudentSelection, toggleSelectAllStudents, clearStudentSelection, bulkDeleteStudents, bulkSetStudentStatus, bulkCreateStudentAccounts } from './students.js';
 import { openStudentDetail, startAddParentContact, startEditParentContact, cancelParentContactForm, deleteParentContact, loadParentContacts } from './parents.js';
-import { editSupporter, deleteSupporter } from './supporters.js';
+import { editSupporter, deleteSupporter } from './supporters.js?v=202610280033';
 import { loadExams, loadExamStudents, loadExamDetails, goBackFromExamDetails, clearExamsFilter } from './exams.js';
-import { addSubjectRow, removeSubjectRow, clearExamForm, calculateSkipped } from './exam-entry.js';
-import { deleteFile } from './files.js';
-import { editCourse, deleteCourse } from './courses.js';
-import { editInstructor, deleteInstructor } from './instructors.js?v=4';
+import { addSubjectRow, removeSubjectRow, clearExamForm, calculateSkipped } from './exam-entry.js?v=202610280033';
+import { deleteFile } from './files.js?v=202610280033';
+import { editCourse, deleteCourse } from './courses.js?v=202610280033';
+import { editInstructor, deleteInstructor } from './instructors.js?v=202610280033';
 import { navigateTo } from './nav.js';
 import { loadReports } from './reports.js';
-import { loadBlogPosts, handleBlogSubmit, openBlogEditor, editBlogPost, deleteBlogPost } from './blog.js';
+import { loadBlogPosts, handleBlogSubmit, openBlogEditor, editBlogPost, deleteBlogPost } from './blog.js?v=202610280033';
 import { initExamsRefresh } from './exams-refresh.js';
 
 const { onReady } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);

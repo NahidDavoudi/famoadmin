@@ -4,9 +4,9 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement, getFormSubmitButton } from './utils.js';
+import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, updateStatElement, getFormSubmitButton } from './utils.js?v=202610280033';
 import { renderImageWithFallback } from './image.js';
-import { uploadFormWithProgress } from './upload-progress.js';
+import { uploadFormWithProgress } from './upload-progress.js?v=202610280033';
 
 export async function loadSupporters() {
     const skeleton = document.getElementById('supportersSkeleton');

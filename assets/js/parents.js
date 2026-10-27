@@ -4,7 +4,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
+import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton } from './utils.js?v=202610280033';
 import { showConfirm } from './confirm-modal.js';
 import { setDetailStudentId, getDetailStudentId } from './config.js';
 import {

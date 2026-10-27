@@ -3,7 +3,7 @@
  * دکمه به‌روزرسانی نتایج آزمون
  */
 
-import { icon, withButtonLoading } from './utils.js';
+import { icon, withButtonLoading } from './utils.js?v=202610280033';
 import * as config from './config.js';
 import { loadExams, loadExamStudents, loadExamDetails } from './exams.js';
 

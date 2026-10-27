@@ -2096,3 +2096,77 @@ body {
     border: 0;
     border-top: 1px solid var(--ds-color-border);
 }
+
+
+/* === UPLOAD PROGRESS (auto: patch) === */
+/* ============================================================
+ * Upload Progress — نوار پیشرفت آپلود (پنل ادمین فامو)
+ *
+ * چرا این فایل لازم است؟
+ * کامپوننت نوار پیشرفت در زمان اجرا (runtime) توسط JS ساخته می‌شود.
+ * اگر css/output.css یک build پاکسازی‌شده‌ی Tailwind باشد، کلاس‌هایی که
+ * فقط داخل رشته‌های JS هستند ممکن است در build نباشند (purge) — و نوار
+ * بی‌ارتفاع یا بی‌رنگ رندر شود. این فایل کامپوننت را از Tailwind مستقل می‌کند.
+ *
+ * نصب: بلوک زیر به انتهای assets/css/admin.css اضافه می‌شود (خودکار با apply.sh)
+ * یا مستقیماً <link> شود بعد از admin.css.
+ * ============================================================ */
+
+.upload-progress {
+    margin-top: 12px;
+}
+
+.upload-progress.is-hidden,
+.upload-progress.hidden {
+    display: none;
+}
+
+.upload-progress__track {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.upload-progress__fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 9999px;
+    background-color: var(--color-primary, var(--primary, #445D84));
+    transition: width 150ms linear;
+}
+
+.upload-progress__text {
+    margin: 6px 0 0;
+    font-size: 11px;
+    line-height: 1.7;
+    text-align: center;
+    color: #6b7280;
+}
+
+/* حالت خطا */
+.upload-progress.is-error .upload-progress__fill,
+.upload-progress__fill.bg-red-500 {
+    background-color: #ef4444;
+}
+
+.upload-progress.is-error .upload-progress__text,
+.upload-progress__text.text-red-500 {
+    color: #ef4444;
+}
+
+/* دسترس‌پذیری: احترام به تنظیم کاهش انیمیشن */
+@media (prefers-reduced-motion: reduce) {
+    .upload-progress__fill {
+        transition: none;
+    }
+}
+
+/* در حالت پرینت، نوار بی‌فایده است */
+@media print {
+    .upload-progress {
+        display: none !important;
+    }
+}
+/* === END UPLOAD PROGRESS === */

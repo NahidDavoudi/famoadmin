@@ -18,7 +18,7 @@
  * `installClickGuard()` باید یک‌بار هنگام startup صدا زده شود (از `events.js init()`).
  */
 
-import { setButtonLoading } from './utils.js';
+import { setButtonLoading } from './utils.js?v=202610280033';
 
 // دکمه‌ای که اخیراً کلیک شده (توسط capture-phase listener ست می‌شود).
 let lastTriggerButton = null;

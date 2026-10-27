@@ -4,8 +4,8 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton, formatDate } from './utils.js';
-import { uploadFormWithProgress } from './upload-progress.js';
+import { showAlert, escapeHtml, icon, withButtonLoading, getFormSubmitButton, formatDate } from './utils.js?v=202610280033';
+import { uploadFormWithProgress } from './upload-progress.js?v=202610280033';
 
 let editorReady = false;
 

@@ -3,7 +3,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, updateStatElement } from './utils.js';
+import { showAlert, updateStatElement } from './utils.js?v=202610280033';
 import * as config from './config.js';
 import { getBaseChartOptions, CHART_COLORS } from './chart-theme.js';
 

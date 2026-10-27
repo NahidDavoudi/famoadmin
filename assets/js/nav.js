@@ -6,15 +6,15 @@ import * as config from './config.js';
 import { loadStats } from './dashboard.js';
 import { loadStudents } from './students.js';
 import { loadStudentDetailPage } from './parents.js';
-import { loadCourses } from './courses.js';
-import { loadInstructors } from './instructors.js';
+import { loadCourses } from './courses.js?v=202610280033';
+import { loadInstructors } from './instructors.js?v=202610280033';
 import { loadExams, loadExamStudents } from './exams.js';
-import { loadExamEntryPage } from './exam-entry.js';
-import { loadFiles } from './files.js';
+import { loadExamEntryPage } from './exam-entry.js?v=202610280033';
+import { loadFiles } from './files.js?v=202610280033';
 import { loadStudentList } from './ui.js';
-import { loadSupporters } from './supporters.js';
+import { loadSupporters } from './supporters.js?v=202610280033';
 import { loadReports } from './reports.js';
-import { loadBlogPosts } from './blog.js';
+import { loadBlogPosts } from './blog.js?v=202610280033';
 
 const pageLoaders = {
     overview: loadStats,

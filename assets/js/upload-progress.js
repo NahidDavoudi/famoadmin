@@ -4,6 +4,11 @@
  * یک کامپوننت مشترک برای نمایش وضعیت آپلود فایل در همه فرم‌ها.
  * نوار به‌صورت خودکار زیر فیلد فایل ساخته می‌شود؛ نیازی به تغییر index.php نیست.
  *
+ * استایل: کلاس‌های معنایی (upload-progress__*) به‌همراه کلاس‌های Tailwind به‌عنوان
+ * fallback. اگر می‌خواهید مستقل از build پروژه‌ی Tailwind باشد،
+ * assets/css/upload-progress.css را به انتهای admin.css اضافه کنید
+ * (apply.sh این کار را خودکار انجام می‌دهد).
+ *
  * دو حالت استفاده:
  *
  *  1) خودکار (توصیه‌شده):
@@ -21,7 +26,7 @@
  * به همین دلیل از `uploadWithProgress` در utils.js استفاده می‌کنیم، نه از API.upload (که fetch است).
  */
 
-import { uploadWithProgress } from './utils.js';
+import { uploadWithProgress } from './utils.js?v=202610280033';
 
 const PHASE_LABEL = {
     uploading: 'در حال آپلود فایل…',
@@ -32,7 +37,8 @@ const PHASE_LABEL = {
 
 /**
  * نوار پیشرفت را برای یک فرم می‌سازد (اگر نبود) و برمی‌گرداند.
- * زیر نزدیک‌ترین .form-group فیلد فایل درج می‌شود؛ اگر فیلد فایل نبود، انتهای فرم.
+ * زیر نزدیک‌ترین .form-group فیلد فایل درج می‌شود؛ اگر فیلد فایل نبود، نزدیک‌ترین والد آن،
+ * و در نهایت انتهای فرم.
  *
  * @param {HTMLFormElement} form
  * @param {{ id?: string, anchor?: HTMLElement }} [opts]
@@ -47,16 +53,22 @@ export function ensureUploadProgress(form, opts = {}) {
 
     const wrap = document.createElement('div');
     wrap.id = id;
-    wrap.className = 'upload-progress hidden mt-3';
+    // کلاس‌ها برای وقتی که upload-progress.css نصب شده؛ استایل inline برای وقتی که نشده.
+    // (کلاس‌های Tailwind در build purge‌شده ممکن است وجود نداشته باشند.)
+    wrap.className = 'upload-progress is-hidden hidden';
     wrap.setAttribute('role', 'status');
     wrap.setAttribute('aria-live', 'polite');
+    wrap.style.display = 'none';
+    wrap.style.marginTop = '12px';
     wrap.innerHTML = `
-        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+        <div class="upload-progress__track w-full bg-gray-200 rounded-full overflow-hidden"
+             style="width:100%;height:8px;background:#e5e7eb;border-radius:9999px;overflow:hidden">
             <div data-role="fill"
-                 class="h-full bg-primary rounded-full transition-all duration-150"
-                 style="width:0%"></div>
+                 class="upload-progress__fill h-full bg-primary rounded-full"
+                 style="height:100%;width:0%;border-radius:9999px;background:var(--color-primary,var(--primary,#445D84));transition:width 150ms linear"></div>
         </div>
-        <p data-role="text" class="text-xs text-gray-500 mt-1 text-center">0%</p>
+        <p data-role="text" class="upload-progress__text text-xs text-gray-500 text-center"
+           style="margin:6px 0 0;font-size:11px;line-height:1.7;text-align:center;color:#6b7280">0%</p>
     `;
 
     const fileInput = form.querySelector('input[type="file"]');
@@ -80,33 +92,51 @@ export function ensureUploadProgress(form, opts = {}) {
 export function updateUploadProgress(wrap, pct, phase = 'uploading') {
     if (!wrap) return;
 
-    wrap.classList.remove('hidden');
+    wrap.classList.remove('is-hidden', 'hidden');
+    wrap.style.display = 'block';
 
     const fill = wrap.querySelector('[data-role="fill"]');
     const text = wrap.querySelector('[data-role="text"]');
+    const isError = phase === 'error';
     const value = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+
+    wrap.classList.toggle('is-error', isError);
 
     if (fill) {
         fill.style.width = `${value}%`;
-        fill.classList.toggle('bg-red-500', phase === 'error');
-        fill.classList.toggle('bg-primary', phase !== 'error');
+        fill.style.background = isError ? '#ef4444' : 'var(--color-primary,var(--primary,#445D84))';
+        // کلاس‌های Tailwind هم به‌عنوان fallback ست می‌شوند
+        fill.classList.toggle('bg-red-500', isError);
+        fill.classList.toggle('bg-primary', !isError);
     }
     if (text) {
-        text.textContent = phase === 'processing' || phase === 'done' || phase === 'error'
+        text.textContent = (phase === 'processing' || phase === 'done' || isError)
             ? (PHASE_LABEL[phase] || `${value}%`)
             : `${PHASE_LABEL.uploading} ${value}%`;
-        text.classList.toggle('text-red-500', phase === 'error');
+        text.style.color = isError ? '#ef4444' : '#6b7280';
+        text.classList.toggle('text-red-500', isError);
     }
 }
 
 /** نوار را پنهان و صفر می‌کند. */
 export function resetUploadProgress(wrap) {
     if (!wrap) return;
-    wrap.classList.add('hidden');
+    wrap.classList.add('is-hidden', 'hidden');
+    wrap.classList.remove('is-error');
+    wrap.style.display = 'none';
     const fill = wrap.querySelector('[data-role="fill"]');
     const text = wrap.querySelector('[data-role="text"]');
-    if (fill) fill.style.width = '0%';
-    if (text) text.textContent = '0%';
+    if (fill) {
+        fill.style.width = '0%';
+        fill.style.background = 'var(--color-primary,var(--primary,#445D84))';
+        fill.classList.remove('bg-red-500');
+        fill.classList.add('bg-primary');
+    }
+    if (text) {
+        text.textContent = '0%';
+        text.style.color = '#6b7280';
+        text.classList.remove('text-red-500');
+    }
 }
 
 /**

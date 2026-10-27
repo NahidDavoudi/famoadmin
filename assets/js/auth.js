@@ -4,7 +4,7 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { toggleElement } from './utils.js';
+import { toggleElement } from './utils.js?v=202610280033';
 import { navigateTo } from './nav.js';
 import { withTriggeredButton } from './clickGuard.js';
 

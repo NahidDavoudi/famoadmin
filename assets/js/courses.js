@@ -3,8 +3,8 @@
  */
 
 const { default: API } = await import(`${window.APP_CONFIG.assetUrl}/js/api.js`);
-import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js';
-import { uploadFormWithProgress } from './upload-progress.js';
+import { showAlert, showModal, hideModal, escapeHtml, setFormValues, icon, withButtonLoading, getFormSubmitButton } from './utils.js?v=202610280033';
+import { uploadFormWithProgress } from './upload-progress.js?v=202610280033';
 
 const ICON_MAP = {
     'fa-book': 'book',
