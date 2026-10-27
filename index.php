@@ -1028,7 +1028,7 @@
                         </button>
                     </div>
 
-                    <form id="blogPostForm" class="blog-editor-card" novalidate>
+                    <form id="blogPostForm" class="blog-editor-card" novalidate enctype="multipart/form-data">
                         <input type="hidden" name="id">
 
                         <div class="form-grid-2">
@@ -1045,24 +1045,42 @@
                         </div>
 
                         <div class="form-grid-2">
-                            <div class="form-group">
-                                <label>دسته‌بندی <span class="text-red-500">*</span></label>
-                                <select name="category" required>
-                                    <option value="">انتخاب کنید</option>
-                                    <option value="دانش‌آموزی">دانش‌آموزی</option>
-                                    <option value="روش مطالعه">روش مطالعه</option>
-                                    <option value="مشاوره تحصیلی">مشاوره تحصیلی</option>
-                                    <option value="اخبار">اخبار</option>
-                                    <option value="داستان نجاح">داستان نجاح</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>تصویر کاور (URL)</label>
-                                <input type="url" name="cover_image" dir="ltr" class="text-left"
-                                    placeholder="https://example.com/cover.jpg">
-                                <div id="blogCoverPreview" class="mt-2"></div>
-                            </div>
-                        </div>
+    <div class="form-group">
+        <label>دسته‌بندی <span class="text-red-500">*</span></label>
+        <select name="category" required>
+            <option value="">انتخاب کنید</option>
+            <option value="دانش‌آموزی">دانش‌آموزی</option>
+            <option value="روش مطالعه">روش مطالعه</option>
+            <option value="مشاوره تحصیلی">مشاوره تحصیلی</option>
+            <option value="اخبار">اخبار</option>
+            <option value="داستان نجاح">داستان نجاح</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>تصویر کاور</label>
+
+        <!-- آپلود فایل (اولویت اول) -->
+        <div class="mb-2">
+            <label class="block text-xs text-gray-500 mb-1">
+                آپلود تصویر (JPG / PNG / WebP — حداکثر ۱۰ مگابایت)
+            </label>
+            <input type="file" name="cover_image_file"
+                accept="image/jpeg,image/png,image/webp"
+                class="w-full px-3 py-2 border-2 border-gray-200 rounded-xl modern-input text-sm file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary file:text-white file:cursor-pointer">
+        </div>
+
+        <!-- یا URL (برای تصاویر خارجی) -->
+        <div>
+            <label class="block text-xs text-gray-500 mb-1">
+                یا آدرس تصویر (URL) — اختیاری
+            </label>
+            <input type="text" name="cover_image" dir="ltr" class="text-left"
+                placeholder="https://example.com/cover.jpg">
+        </div>
+
+        <div id="blogCoverPreview" class="mt-2"></div>
+    </div>
+</div>
 
                         <div class="form-group">
                             <label>خلاصه</label>
@@ -1671,7 +1689,7 @@
                     </div>
                     <div class="form-group">
                         <label>تصویر</label>
-                        <input type="file" accept="image/*">
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
                         <p class="text-xs text-gray-500">JPG, PNG, WEBP | حداکثر: 5MB | پیشنهادی: 400x500px</p>
                     </div>
                     <div class="form-group">
@@ -1740,7 +1758,7 @@
                     </div>
                     <div class="form-group">
                         <label>تصویر جدید (اختیاری)</label>
-                        <input type="file" accept="image/*">
+                        <input type="file" name="image" accept="image/jpeg,image/png,image/webp">
                     </div>
                     <div class="form-group">
                         <label>توضیحات</label>

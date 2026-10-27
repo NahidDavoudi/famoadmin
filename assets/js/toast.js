@@ -1,7 +1,7 @@
-// toast.js — Toast notification stack replacement for single alertBox
+// toast.js — Modern toast notifications (Uiverse-style, RTL-friendly)
 
 /**
- * Toast notification types with their styling
+ * Toast types
  * @enum {string}
  */
 const ToastType = {
@@ -12,30 +12,60 @@ const ToastType = {
 };
 
 /**
- * Default toast options
- * @typedef {Object} ToastOptions
- * @property {string} type - Toast type (success, error, warning, info)
- * @property {string} message - The toast message
- * @property {number} duration - Auto-dismiss duration in ms (default: 5000)
- * @property {boolean} showCloseButton - Whether to show close button (default: false)
- * @property {string} actionText - Text for action button (default: null)
- * @property {Function} onAction - Callback when action button is clicked
+ * Per-type palette (border, text, gradient overlay)
+ * رنگ‌ها هماهنگ با طراحی سایت (primary #445D84 / accent #8B786D)
  */
+const TOAST_PALETTE = {
+    [ToastType.SUCCESS]: {
+        border: '#16a34a',        // green-600
+        text:   '#15803d',        // green-700
+        bg:     'linear-gradient(#16a34a1a,#16a34a1a)',
+        icon:   'success',
+    },
+    [ToastType.ERROR]: {
+        border: '#f85149',
+        text:   '#b22b2b',
+        bg:     'linear-gradient(#f851491a,#f851491a)',
+        icon:   'error',
+    },
+    [ToastType.WARNING]: {
+        border: '#f59e0b',        // amber-500
+        text:   '#b45309',        // amber-700
+        bg:     'linear-gradient(#f59e0b1a,#f59e0b1a)',
+        icon:   'warning',
+    },
+    [ToastType.INFO]: {
+        border: '#445D84',
+        text:   '#3a5170',
+        bg:     'linear-gradient(#445D841a,#445D841a)',
+        icon:   'info',
+    },
+};
 
 /**
- * Toast container management
- * Creates a persistent toast container at the bottom-right of the screen
+ * SVG icons as inline strings (no external deps)
+ */
+const TOAST_ICONS = {
+    success: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`,
+    error:   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+    warning: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+    info:    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+};
+
+const CLOSE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`;
+
+/**
+ * Toast container (stack)
  */
 class ToastContainer {
     constructor() {
         this.toasts = [];
-        this.maxToasts = 4; // Maximum number of toasts in the stack
+        this.maxToasts = 4;
         this.container = null;
         this.init();
     }
 
     init() {
-        // Check if container already exists
         if (document.getElementById('toast-container')) {
             this.container = document.getElementById('toast-container');
             return;
@@ -43,121 +73,198 @@ class ToastContainer {
 
         this.container = document.createElement('div');
         this.container.id = 'toast-container';
-        this.container.style.position = 'fixed';
-        this.container.style.bottom = 'var(--ds-space-4)'; /* 16px */
-        this.container.style.right = 'var(--ds-space-4)'; /* 16px */
-        this.container.style.display = 'flex';
-        this.container.style.flexDirection = 'column';
-        this.container.style.gap = 'var(--ds-space-3)'; /* 12px */
-        this.container.style.zIndex = '9999';
-        this.container.style.alignItems = 'flex-end';
-        this.container.style.fontFamily = '"Vazirmatn", sans-serif';
-        this.container.style.direction = 'rtl';
+        this.container.setAttribute('role', 'region');
+        this.container.setAttribute('aria-label', 'اعلان‌ها');
+        this.container.setAttribute('aria-live', 'polite');
+
+        Object.assign(this.container.style, {
+            position: 'fixed',
+            bottom: '16px',
+            left: '16px',                 // RTL: پایین-چپ (مطابق سایت‌های فارسی)
+            display: 'flex',
+            flexDirection: 'column-reverse', // جدیدها پایین‌تر
+            gap: '12px',
+            zIndex: '9999',
+            alignItems: 'flex-start',
+            fontFamily: '"Vazirmatn", Tahoma, sans-serif',
+            direction: 'rtl',
+            pointerEvents: 'none',        // فقط توست‌ها کلیک بگیرن
+        });
+
         document.body.appendChild(this.container);
     }
 
     /**
      * Show a toast notification
-     * @param {string} message - The toast message
-     * @param {ToastOptions} options - Toast options
-     * @returns {HTMLElement} The toast element
+     * @param {string} message
+     * @param {Object} options
+     * @param {string} [options.type='info']
+     * @param {number} [options.duration=5000]
+     * @param {boolean} [options.showCloseButton=true]
+     * @param {string} [options.actionText]
+     * @param {Function} [options.onAction]
+     * @returns {HTMLElement}
      */
     show(message, options = {}) {
         const {
             type = ToastType.INFO,
             duration = 5000,
-            showCloseButton = false,
+            showCloseButton = true,
             actionText,
             onAction,
         } = options;
 
+        const palette = TOAST_PALETTE[type] || TOAST_PALETTE[ToastType.INFO];
+        const iconSvg = TOAST_ICONS[palette.icon] || TOAST_ICONS.info;
+
+        // --- outer wrapper (the "card") ---
         const toast = document.createElement('div');
-        toast.style.background = this.getBackgroundColor(type);
-        toast.style.color = this.getTextColor(type);
-        toast.style.padding = 'var(--ds-space-4) var(--ds-space-5)'; /* 16px vertical, 20px horizontal */
-        toast.style.borderRadius = 'var(--ds-radius-md)'; /* 8px */
-        toast.style.boxShadow = 'var(--ds-shadow-lg)';
-        toast.style.minWidth = '200px';
-        toast.style.maxWidth = '80vw';
-        toast.style.width = 'fit-content';
-        toast.style.zIndex = '9999';
-        toast.style.direction = 'rtl';
-        toast.style.fontSize = 'var(--ds-text-sm)';
-        toast.style.fontWeight = 'var(--ds-weight-medium)';
-        toast.style.lineHeight = '1.5';
-        toast.style.position = 'relative';
-        toast.style.transform = 'translateY(100%)';
-        toast.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        toast.setAttribute('role', type === ToastType.ERROR ? 'alert' : 'status');
+        toast.style.pointerEvents = 'auto';
 
-        // Icon
-        const iconSpan = document.createElement('span');
-        iconSpan.style.marginRight = 'var(--ds-space-3)'; /* 12px */
-        iconSpan.style.fontSize = 'var(--ds-text-lg)';
-        iconSpan.innerHTML = this.getIcon(type);
-        toast.appendChild(iconSpan);
+        Object.assign(toast.style, {
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            width: '100%',
+            maxWidth: '22rem',
+            padding: '12px 16px 12px 48px',   // فضای راست برای دکمه بستن
+            paddingLeft: '56px',               // فضای چپ (در RTL) برای دکمه
+            borderRadius: '10px',
+            fontSize: '14px',
+            fontWeight: '500',
+            border: `1px solid ${palette.border}`,
+            color: palette.text,
+            background: palette.bg,
+            transition: 'all 0.5s ease',
+            boxShadow: '0 6px 20px -8px rgba(0,0,0,0.15)',
+            transform: 'translateX(-120%)',
+            opacity: '0',
+            lineHeight: '1.6',
+        });
 
-        // Message
-        const messageSpan = document.createElement('span');
-        messageSpan.style.wordBreak = 'break-word';
-        messageSpan.textContent = message;
-        toast.appendChild(messageSpan);
-
-        // Close button
+        // --- close button (right in RTL → uses `right: 1rem`) ---
         if (showCloseButton) {
             const closeBtn = document.createElement('button');
-            closeBtn.style.position = 'absolute';
-            closeBtn.style.top = 'var(--ds-space-1)'; /* 4px */
-            closeBtn.style.right = 'var(--ds-space-1)'; /* 4px */
-            closeBtn.style.width = 'var(--ds-space-3)'; /* 12px */
-            closeBtn.style.height = 'var(--ds-space-3)'; /* 12px */
-            closeBtn.style.border = 'none';
-            closeBtn.style.background = 'transparent';
-            closeBtn.style.color = 'currentColor';
-            closeBtn.style.fontSize = '1rem';
-            closeBtn.style.cursor = 'pointer';
-            closeBtn.setAttribute('aria-label', 'بستن toast');
-            closeBtn.innerHTML = '×';
+            closeBtn.type = 'button';
+            closeBtn.setAttribute('aria-label', 'بستن اعلان');
+            closeBtn.innerHTML = CLOSE_ICON;
+
+            Object.assign(closeBtn.style, {
+                position: 'absolute',
+                right: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                padding: '4px',
+                borderRadius: '6px',
+                border: `1px solid ${palette.border}`,
+                background: 'transparent',
+                color: palette.border,
+                opacity: '0.4',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                lineHeight: '0',
+            });
+            closeBtn.addEventListener('mouseenter', () => closeBtn.style.opacity = '1');
+            closeBtn.addEventListener('mouseleave', () => closeBtn.style.opacity = '0.4');
             closeBtn.addEventListener('click', () => this.remove(toast));
+
             toast.appendChild(closeBtn);
         }
 
-        // Action button
-        if (actionText && onAction) {
+        // --- inner content (icon + text) ---
+        const content = document.createElement('p');
+        Object.assign(content.style, {
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'center',
+            margin: '0',
+            marginRight: 'auto',
+            gap: '8px',
+            wordBreak: 'break-word',
+            textAlign: 'right',
+        });
+
+        const iconWrap = document.createElement('span');
+        iconWrap.innerHTML = iconSvg;
+        Object.assign(iconWrap.style, {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: '0',
+            width: '28px',
+            height: '28px',
+            color: palette.border,
+        });
+        // سایز آیکون
+        const svgEl = iconWrap.querySelector('svg');
+        if (svgEl) {
+            svgEl.setAttribute('width', '26');
+            svgEl.setAttribute('height', '26');
+        }
+
+        const messageSpan = document.createElement('span');
+        messageSpan.textContent = message;
+        messageSpan.style.flex = '1';
+
+        content.appendChild(iconWrap);
+        content.appendChild(messageSpan);
+        toast.appendChild(content);
+
+        // --- optional action button ---
+        if (actionText && typeof onAction === 'function') {
             const actionBtn = document.createElement('button');
-            actionBtn.style.marginTop = 'var(--ds-space-2)'; /* 8px */
-            actionBtn.style.padding = 'var(--ds-space-2) var(--ds-space-3)'; /* 8px vertical, 12px horizontal */
-            actionBtn.style.borderRadius = 'var(--ds-radius-sm)'; /* 6px */
-            actionBtn.style.background = 'transparent';
-            actionBtn.style.color = this.getTextColor(type);
-            actionBtn.style.border = '1px solid currentColor';
-            actionBtn.style.fontSize = 'var(--ds-text-xs)';
-            actionBtn.style.cursor = 'pointer';
-            actionBtn.setAttribute('aria-label', 'عملیات additional');
-            actionBtn.innerHTML = actionText;
+            actionBtn.type = 'button';
+            actionBtn.textContent = actionText;
+            Object.assign(actionBtn.style, {
+                marginTop: '8px',
+                marginRight: 'auto',
+                padding: '4px 12px',
+                borderRadius: '6px',
+                background: 'transparent',
+                color: palette.text,
+                border: `1px solid ${palette.border}`,
+                fontSize: '12px',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s ease',
+                opacity: '0.85',
+            });
+            actionBtn.addEventListener('mouseenter', () => actionBtn.style.opacity = '1');
+            actionBtn.addEventListener('mouseleave', () => actionBtn.style.opacity = '0.85');
             actionBtn.addEventListener('click', () => {
-                onAction();
+                try { onAction(); } catch (e) { console.error(e); }
                 this.remove(toast);
             });
             toast.appendChild(actionBtn);
         }
 
-        // Add to container
+        // append + animate in
         this.container.appendChild(toast);
 
-        // Animate in
-        setTimeout(() => {
-            toast.style.transform = 'translateY(0)';
-        }, 10);
+        // Force reflow so transition runs
+        // eslint-disable-next-line no-unused-expressions
+        toast.offsetHeight;
 
-        // Auto-dismiss
-        const timer = setTimeout(() => {
-            this.remove(toast);
-        }, duration);
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(0)';
+            toast.style.opacity = '1';
+        });
+
+        // auto-dismiss
+        let timer = null;
+        if (duration > 0) {
+            timer = setTimeout(() => this.remove(toast), duration);
+        }
 
         this.toasts.push({ element: toast, timer });
 
-        // Enforce max toasts
-        if (this.toasts.length > this.maxToasts) {
+        // enforce max toasts
+        while (this.toasts.length > this.maxToasts) {
             this.remove(this.toasts[0].element);
         }
 
@@ -166,134 +273,49 @@ class ToastContainer {
 
     /**
      * Remove a toast from the container
-     * @param {HTMLElement} toastElement - The toast element to remove
+     * @param {HTMLElement} toastElement
      */
     remove(toastElement) {
-        const toast = this.toasts.find(t => t.element === toastElement);
-        if (toast) {
-            clearTimeout(toast.timer);
+        const entry = this.toasts.find(t => t.element === toastElement);
+        if (entry && entry.timer) {
+            clearTimeout(entry.timer);
         }
 
         if (toastElement && toastElement.parentNode) {
-            toastElement.style.transform = 'translateY(100%)';
-            toastElement.style.transition = 'transform 0.3s ease';
-
+            toastElement.style.transform = 'translateX(-120%)';
+            toastElement.style.opacity = '0';
             setTimeout(() => {
                 if (toastElement.parentNode) {
                     toastElement.parentNode.removeChild(toastElement);
                 }
-            }, 300);
+            }, 400);
         }
 
-        // Remove from array
         this.toasts = this.toasts.filter(t => t.element !== toastElement);
     }
 
-    /**
-     * Get background color for toast type
-     * @param {string} type - Toast type
-     * @returns {string}
-     */
-    getBackgroundColor(type) {
-        switch (type) {
-            case ToastType.SUCCESS:
-                return 'color-mix(in srgb, var(--ds-color-success), var(--ds-color-neutral-50))';
-            case ToastType.ERROR:
-                return 'color-mix(in srgb, var(--ds-color-danger), var(--ds-color-neutral-50))';
-            case ToastType.WARNING:
-                return 'color-mix(in srgb, var(--ds-color-warning), var(--ds-color-neutral-50))';
-            case ToastType.INFO:
-            default:
-                return 'var(--ds-color-neutral-100)';
-        }
-    }
-
-    /**
-     * Get text color for toast type
-     * @param {string} type - Toast type
-     * @returns {string}
-     */
-    getTextColor(type) {
-        switch (type) {
-            case ToastType.SUCCESS:
-                return 'var(--ds-color-success)';
-            case ToastType.ERROR:
-                return 'var(--ds-color-danger)';
-            case ToastType.WARNING:
-                return 'var(--ds-color-warning)';
-            case ToastType.INFO:
-            default:
-                return 'var(--ds-color-neutral-700)';
-        }
-    }
-
-    /**
-     * Get icon for toast type
-     * @param {string} type - Toast type
-     * @returns {string} SVG HTML
-     */
-    getIcon(type) {
-        switch (type) {
-            case ToastType.SUCCESS:
-                return '<i data-lucide="check" class="icon" aria-hidden="true"></i>';
-            case ToastType.ERROR:
-                return '<i data-lucide="x" class="icon" aria-hidden="true"></i>';
-            case ToastType.WARNING:
-                return '<i data-lucide="triangle-alert" class="icon" aria-hidden="true"></i>';
-            case ToastType.INFO:
-            default:
-                return '<i data-lucide="info" class="icon" aria-hidden="true"></i>';
-        }
-    }
-
-    /**
-     * Success toast
-     * @param {string} message - The message
-     * @param {Object} options - Additional options
-     * @returns {HTMLElement}
-     */
     success(message, options = {}) {
         return this.show(message, { ...options, type: ToastType.SUCCESS });
     }
 
-    /**
-     * Error toast
-     * @param {string} message - The message
-     * @param {Object} options - Additional options
-     * @returns {HTMLElement}
-     */
     error(message, options = {}) {
         return this.show(message, { ...options, type: ToastType.ERROR });
     }
 
-    /**
-     * Warning toast
-     * @param {string} message - The message
-     * @param {Object} options - Additional options
-     * @returns {HTMLElement}
-     */
     warning(message, options = {}) {
         return this.show(message, { ...options, type: ToastType.WARNING });
     }
 
-    /**
-     * Info toast
-     * @param {string} message - The message
-     * @param {Object} options - Additional options
-     * @returns {HTMLElement}
-     */
     info(message, options = {}) {
         return this.show(message, { ...options, type: ToastType.INFO });
     }
 }
 
-// Create and export singleton instance
+// singleton
 const toastContainer = new ToastContainer();
 export default toastContainer;
 
-/**
- * Convenience functions for common use cases
- */
+/* ── Convenience helpers (API قبلی حفظ شده) ── */
 
 export function showToast(message, type = ToastType.INFO, duration = 5000) {
     return toastContainer.show(message, { type, duration });

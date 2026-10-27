@@ -29,8 +29,10 @@ function renderBlogTable(posts) {
         <tr class="hover:bg-gray-50">
             <td class="px-5 py-4 font-medium">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-[#E2D9C6] flex items-center justify-center flex-shrink-0 shadow-md">
-                        ${icon('newspaper', 'icon text-primary')}
+                    <div class="w-10 h-10 rounded-full bg-[#E2D9C6] flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+                        ${p.cover_image
+                            ? `<img src="${escapeHtml(p.cover_image)}" alt="" class="w-10 h-10 object-cover" onerror="this.style.display='none'">`
+                            : icon('newspaper', 'icon text-primary')}
                     </div>
                     <div class="max-w-xs truncate">
                         <div class="font-medium text-gray-800">${escapeHtml(p.title)}</div>
@@ -134,8 +136,15 @@ function initBlogEditor() {
 function renderCoverPreview(url) {
     const box = document.getElementById('blogCoverPreview');
     if (!box) return;
-    if (!url) { box.innerHTML = ''; return; }
-    box.innerHTML = `<img src="${escapeHtml(url)}" alt="cover" class="w-40 h-24 object-cover rounded-lg border border-gray-200" onerror="this.style.display='none'">`;
+    box.innerHTML = '';
+    if (!url) return;
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'cover';
+    img.className = 'w-40 h-24 object-cover rounded-lg border border-gray-200';
+    img.onerror = () => { img.style.display = 'none'; };
+    box.appendChild(img);
 }
 
 export async function openBlogEditor(id = null) {
@@ -154,10 +163,24 @@ export async function openBlogEditor(id = null) {
     if (input) input.value = '';
     renderCoverPreview('');
 
+    // URL کاور
     const coverInput = form.querySelector('[name="cover_image"]');
     if (coverInput && !coverInput.dataset.bound) {
         coverInput.addEventListener('input', () => renderCoverPreview(coverInput.value));
         coverInput.dataset.bound = '1';
+    }
+
+    // فایل کاور (پیش‌نمایش محلی)
+    const coverFileInput = form.querySelector('[name="cover_image_file"]');
+    if (coverFileInput && !coverFileInput.dataset.bound) {
+        coverFileInput.addEventListener('change', () => {
+            const file = coverFileInput.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => renderCoverPreview(e.target.result);
+            reader.readAsDataURL(file);
+        });
+        coverFileInput.dataset.bound = '1';
     }
 
     if (id) {
@@ -206,24 +229,43 @@ export async function handleBlogSubmit(e) {
         return;
     }
 
-    const id = form.querySelector('[name="id"]').value;
+    const id        = form.querySelector('[name="id"]').value;
     const published = !!form.querySelector('[name="is_published"]').checked;
-
-    const payload = {
-        title: form.querySelector('[name="title"]').value.trim(),
-        slug: form.querySelector('[name="slug"]').value.trim(),
-        category: form.querySelector('[name="category"]').value,
-        cover_image: form.querySelector('[name="cover_image"]').value.trim() || null,
-        excerpt: form.querySelector('[name="excerpt"]').value.trim(),
-        content: input.value,
-        meta_description: form.querySelector('[name="meta_description"]').value.trim(),
-        is_published: published ? 1 : 0,
-    };
+    const coverFile = form.querySelector('[name="cover_image_file"]')?.files?.[0] || null;
+    const coverUrl  = form.querySelector('[name="cover_image"]')?.value.trim() || '';
 
     const submitBtn = getFormSubmitButton(form);
     await withButtonLoading(submitBtn, async () => {
-        if (id) await API.put(`/blog/posts/${id}`, payload);
-        else await API.post('/blog/posts', payload);
+        if (coverFile) {
+            // ارسال multipart فقط وقتی فایل هست
+            const fd = new FormData();
+            fd.append('title', form.querySelector('[name="title"]').value.trim());
+            fd.append('slug', form.querySelector('[name="slug"]').value.trim());
+            fd.append('category', form.querySelector('[name="category"]').value);
+            fd.append('excerpt', form.querySelector('[name="excerpt"]').value.trim());
+            fd.append('content', input.value);
+            fd.append('meta_description', form.querySelector('[name="meta_description"]').value.trim());
+            fd.append('is_published', published ? '1' : '0');
+            fd.append('cover_image_file', coverFile);
+
+            if (id) await API.upload(`/blog/posts/${id}`, fd, 'PUT');
+            else    await API.upload('/blog/posts', fd);
+        } else {
+            // حالت JSON معمولی (بدون فایل) — سازگار با گذشته
+            const payload = {
+                title: form.querySelector('[name="title"]').value.trim(),
+                slug: form.querySelector('[name="slug"]').value.trim(),
+                category: form.querySelector('[name="category"]').value,
+                cover_image: coverUrl || null,
+                excerpt: form.querySelector('[name="excerpt"]').value.trim(),
+                content: input.value,
+                meta_description: form.querySelector('[name="meta_description"]').value.trim(),
+                is_published: published ? 1 : 0,
+            };
+            if (id) await API.put(`/blog/posts/${id}`, payload);
+            else    await API.post('/blog/posts', payload);
+        }
+
         if (typeof window.navigateTo === 'function') window.navigateTo('blog');
         showAlert(id ? 'پست به‌روزرسانی شد' : 'پست جدید اضافه شد', 'success');
     }, 'در حال ذخیره...').catch(error => showAlert(error.message, 'error'));
